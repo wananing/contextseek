@@ -25,7 +25,11 @@ class ContextSeekMCPServer:
                     "scope": {"type": "string", "required": True},
                     "content": {"type": "string", "required": True},
                     "source": {"type": "string", "default": "mcp"},
-                    "tags": {"type": "array", "items": {"type": "string"}, "default": []},
+                    "tags": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "default": [],
+                    },
                 },
             },
             {
@@ -246,7 +250,9 @@ class ContextSeekMCPServer:
                 "total_dream_items": report.total_dream_items,
                 "consolidation_patterns": report.consolidation.patterns_found,
                 "consolidation_items": len(report.consolidation.items),
-                "divergence_items": len(report.divergence.items) if report.divergence else 0,
+                "divergence_items": len(report.divergence.items)
+                if report.divergence
+                else 0,
             }
 
         if name == "contextseek_overview":
@@ -331,6 +337,7 @@ class ContextSeekMCPServer:
             scope = arguments["scope"]
             stage_str = arguments.get("stage")
             from contextseek.domain.stages import Stage
+
             stage = Stage(stage_str) if stage_str else None
             result_items = self.client.items(scope=scope, stage=stage)
             return {"items": [serialize_context_item(it) for it in result_items]}

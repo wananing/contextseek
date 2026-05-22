@@ -124,8 +124,12 @@ class TestConsolidationEngine:
         engine = ConsolidationEngine(strategy=strategy)
 
         items = [
-            _make_item(content="related alpha beta gamma", tags=["dreamed", "consolidation"]),
-            _make_item(content="related alpha beta delta", tags=["dreamed", "consolidation"]),
+            _make_item(
+                content="related alpha beta gamma", tags=["dreamed", "consolidation"]
+            ),
+            _make_item(
+                content="related alpha beta delta", tags=["dreamed", "consolidation"]
+            ),
         ]
 
         result = engine.consolidate(items)
@@ -203,9 +207,11 @@ class TestDivergenceEngine:
         engine = DivergenceEngine(strategy=strategy)
 
         # Only one cluster
-        result = engine.diverge([
-            [_make_item(content="one"), _make_item(content="two")],
-        ])
+        result = engine.diverge(
+            [
+                [_make_item(content="one"), _make_item(content="two")],
+            ]
+        )
         assert len(result.items) == 0
 
     def test_divergence_generates_hypotheses(self):

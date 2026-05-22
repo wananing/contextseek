@@ -33,7 +33,7 @@ def _split_scheme(path: str) -> tuple[str, str]:
     i = path.find("://")
     if i == -1:
         return "", path
-    return path[: i + 3], path[i + 3:]
+    return path[: i + 3], path[i + 3 :]
 
 
 class FileBackend(BackendProtocol):
@@ -133,7 +133,9 @@ class FileBackend(BackendProtocol):
         scheme_in, rel = _split_scheme(path)
         scheme = scheme_in or self._scheme
         rel_prefix = rel if rel.endswith("/") else rel + "/"
-        local_dir = (self._root / rel_prefix.rstrip("/")) if rel_prefix != "/" else self._root
+        local_dir = (
+            (self._root / rel_prefix.rstrip("/")) if rel_prefix != "/" else self._root
+        )
         out_prefix = scheme + rel_prefix
 
         out: list[FileInfo] = []

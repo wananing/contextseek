@@ -14,7 +14,13 @@ from contextseek.scope import (
 
 class TestScopeBuilder:
     def test_basic_chain(self):
-        scope = ScopeBuilder().org("acme").project("payment-service").agent("refund-agent").build()
+        scope = (
+            ScopeBuilder()
+            .org("acme")
+            .project("payment-service")
+            .agent("refund-agent")
+            .build()
+        )
         assert scope == "acme/payment-service/refund-agent"
 
     def test_run_adds_type_label(self):
@@ -63,7 +69,9 @@ class TestScopeBuilder:
 
     def test_from_env_skips_missing_vars(self, monkeypatch):
         monkeypatch.delenv("MISSING_VAR", raising=False)
-        scope = ScopeBuilder.from_env("acme", env_vars={"project": "MISSING_VAR"}).build()
+        scope = ScopeBuilder.from_env(
+            "acme", env_vars={"project": "MISSING_VAR"}
+        ).build()
         assert scope == "acme"
 
     def test_from_env_invalid_method_raises(self, monkeypatch):

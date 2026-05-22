@@ -50,11 +50,21 @@ class EvolutionEngine:
         distiller_min_boost = 1.2
         if strategy is not None:
             ephemeral_ttl = getattr(strategy, "ephemeral_ttl_seconds", ephemeral_ttl)
-            merger_threshold = getattr(strategy, "semantic_merge_threshold", merger_threshold)
-            merger_min_cluster = getattr(strategy, "min_cluster_size", merger_min_cluster)
-            merger_half_life = getattr(strategy, "decay_half_life_days", merger_half_life)
-            distiller_min_use = getattr(strategy, "distill_min_use_count", distiller_min_use)
-            distiller_min_boost = getattr(strategy, "distill_min_relevance_boost", distiller_min_boost)
+            merger_threshold = getattr(
+                strategy, "semantic_merge_threshold", merger_threshold
+            )
+            merger_min_cluster = getattr(
+                strategy, "min_cluster_size", merger_min_cluster
+            )
+            merger_half_life = getattr(
+                strategy, "decay_half_life_days", merger_half_life
+            )
+            distiller_min_use = getattr(
+                strategy, "distill_min_use_count", distiller_min_use
+            )
+            distiller_min_boost = getattr(
+                strategy, "distill_min_relevance_boost", distiller_min_boost
+            )
 
         self._ephemeral_ttl = ephemeral_ttl
         self._extractor = extractor or HeuristicExtractor()
@@ -71,7 +81,9 @@ class EvolutionEngine:
             llm_distill_fn=distill_render_fn,
         )
 
-    def evolve(self, items: list[ContextItem]) -> tuple[list[ContextItem], list[ContextItem], CompactReport]:
+    def evolve(
+        self, items: list[ContextItem]
+    ) -> tuple[list[ContextItem], list[ContextItem], CompactReport]:
         """Run the full evolution pipeline.
 
         Returns:
@@ -86,7 +98,8 @@ class EvolutionEngine:
 
         # Phase 1: raw → extracted (trace extraction)
         raw_traces = [
-            it for it in items
+            it
+            for it in items
             if it.stage == Stage.raw
             and not it.is_deleted
             and self._eligible_for_extraction(it)
@@ -97,9 +110,13 @@ class EvolutionEngine:
         report.evolved_count += len(new_items)
 
         # Phase 2: extracted → knowledge (convergence merge)
-        extracted_items = [it for it in items if it.stage == Stage.extracted and not it.is_deleted]
+        extracted_items = [
+            it for it in items if it.stage == Stage.extracted and not it.is_deleted
+        ]
         # Include newly extracted items
-        all_extracted = extracted_items + [it for it in new_items if it.stage == Stage.extracted]
+        all_extracted = extracted_items + [
+            it for it in new_items if it.stage == Stage.extracted
+        ]
         if all_extracted:
             kept, archived = self._merger.merge(all_extracted)
             # Find new knowledge items (those not in original list)
@@ -111,7 +128,9 @@ class EvolutionEngine:
             report.evolved_count += len(new_knowledge)
 
         # Phase 3: knowledge → skill (distillation)
-        knowledge_items = [it for it in items if it.stage == Stage.knowledge and not it.is_deleted]
+        knowledge_items = [
+            it for it in items if it.stage == Stage.knowledge and not it.is_deleted
+        ]
         candidates = self._distiller.identify_candidates(knowledge_items)
         for candidate in candidates:
             skill_item = self._distiller.distill(candidate)

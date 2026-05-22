@@ -25,7 +25,9 @@ class MetricsCollector:
     """
 
     _counters: dict[str, float] = field(default_factory=lambda: defaultdict(float))
-    _histograms: dict[str, list[float]] = field(default_factory=lambda: defaultdict(list))
+    _histograms: dict[str, list[float]] = field(
+        default_factory=lambda: defaultdict(list)
+    )
     _lock: Lock = field(default_factory=Lock)
 
     def record(self, point: MetricPoint) -> None:

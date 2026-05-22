@@ -67,7 +67,7 @@ class ScopeResolver:
         if not ref.startswith(self._scheme):
             msg = f"ref does not match scheme {self._scheme}: {ref}"
             raise ValueError(msg)
-        path = ref[len(self._scheme):]
+        path = ref[len(self._scheme) :]
         parts = path.rstrip("/").rsplit("/", 1)
         if len(parts) != 2:
             msg = f"cannot parse ref into scope/item_id: {ref}"

@@ -45,5 +45,10 @@ def register_builtin_adapters() -> None:
     from contextseek.bridges.langchain.memory import ContextSeekMemory
     from contextseek.bridges.langchain.retriever import ContextSeekRetriever
 
-    for adapter_cls in (ContextSeekRetriever, ContextSeekMemory, ContextStore, TraceSink):
+    for adapter_cls in (
+        ContextSeekRetriever,
+        ContextSeekMemory,
+        ContextStore,
+        TraceSink,
+    ):
         register_adapter(cast(type[AdapterContract], adapter_cls))

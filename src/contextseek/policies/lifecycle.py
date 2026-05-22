@@ -174,7 +174,9 @@ class LifecycleScheduler:
                 scope=scope,
                 action="compact",
                 timestamp=_utc_now(),
-                result=result.__dict__ if hasattr(result, '__dict__') else {"details": str(result)},
+                result=result.__dict__
+                if hasattr(result, "__dict__")
+                else {"details": str(result)},
             )
             self._history.append(event)
             if self.on_event:
@@ -191,7 +193,6 @@ class LifecycleScheduler:
             if self.on_event:
                 self.on_event(event)
             return event
-
 
     def _dream_scope(self, scope: str) -> LifecycleEvent | None:
         """Run dreaming (consolidation + divergence) on a scope."""
@@ -242,7 +243,9 @@ class LifecycleScheduler:
                 timestamp=_utc_now(),
                 result={
                     "consolidation_items": len(report.consolidation.items),
-                    "divergence_items": len(report.divergence.items) if report.divergence else 0,
+                    "divergence_items": len(report.divergence.items)
+                    if report.divergence
+                    else 0,
                     "patterns_found": report.consolidation.patterns_found,
                     "total": report.total_dream_items,
                 },

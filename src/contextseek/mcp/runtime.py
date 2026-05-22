@@ -66,6 +66,7 @@ class MCPRuntime:
             session_id = str(request_id or uuid4())
             client_info = dict(params.get("clientInfo", {}))
             from datetime import datetime, timezone
+
             session = MCPSession(
                 session_id=session_id,
                 client_info=client_info,
@@ -80,7 +81,9 @@ class MCPRuntime:
             }
             return _success_response(request_id=request_id, result=result)
         if method == "tools/list":
-            return _success_response(request_id=request_id, result={"tools": self.server.list_tools()})
+            return _success_response(
+                request_id=request_id, result={"tools": self.server.list_tools()}
+            )
         if method == "tools/call":
             name = str(params.get("name", ""))
             arguments = dict(params.get("arguments", {}))
@@ -135,7 +138,9 @@ def run_stdio_server() -> int:
         try:
             request = json.loads(raw)
         except json.JSONDecodeError:
-            response = _error_response(request_id=None, code=-32700, message="parse error")
+            response = _error_response(
+                request_id=None, code=-32700, message="parse error"
+            )
             sys.stdout.write(json.dumps(response, ensure_ascii=False) + "\n")
             sys.stdout.flush()
             continue

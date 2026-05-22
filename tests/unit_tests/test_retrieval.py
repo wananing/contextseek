@@ -44,5 +44,3 @@ class TestHeuristicReranker:
         result = reranker.rerank(candidates, query="test", strategy=RetrievalStrategy())
         scores = [float(r["_score"]) for r in result]
         assert scores == sorted(scores, reverse=True)
-
-

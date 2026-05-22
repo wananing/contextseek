@@ -116,7 +116,8 @@ class ConsolidationEngine:
 
         # Filter: recent, active, non-dreamed, non-deleted
         candidates = [
-            it for it in items
+            it
+            for it in items
             if not it.is_deleted
             and it.searchable
             and "dreamed" not in it.tags
@@ -219,7 +220,8 @@ class ConsolidationEngine:
             ),
             stage=Stage.extracted,
             stability=Stability.transient,
-            tags=["dreamed", "consolidation"] + sorted(common_tags - {"dreamed", "consolidation", "divergence"}),
+            tags=["dreamed", "consolidation"]
+            + sorted(common_tags - {"dreamed", "consolidation", "divergence"}),
             links=[
                 Link(target_id=it.id, relation=LinkType.synthesized_from, strength=0.6)
                 for it in cluster
@@ -423,7 +425,9 @@ class DreamEngine:
             total_dream_items=total,
         )
 
-    def _build_clusters_for_divergence(self, items: list[ContextItem]) -> list[list[ContextItem]]:
+    def _build_clusters_for_divergence(
+        self, items: list[ContextItem]
+    ) -> list[list[ContextItem]]:
         """Group items into topic clusters for divergence cross-pollination.
 
         Uses tag-based grouping as a lightweight clustering approach.
@@ -431,7 +435,17 @@ class DreamEngine:
         tag_groups: dict[str, list[ContextItem]] = {}
         for item in items:
             # Use the first non-system tag as group key
-            key_tags = [t for t in item.tags if t not in ("dreamed", "consolidation", "divergence", "needs_reverification")]
+            key_tags = [
+                t
+                for t in item.tags
+                if t
+                not in (
+                    "dreamed",
+                    "consolidation",
+                    "divergence",
+                    "needs_reverification",
+                )
+            ]
             key = key_tags[0] if key_tags else "__untagged__"
             tag_groups.setdefault(key, []).append(item)
 

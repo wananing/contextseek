@@ -240,7 +240,9 @@ class TestAfterModel:
         ctx = _fake_ctx()
         mw = ContextSeekMiddleware(ctx=ctx, scope="s")
         mw.after_model(
-            state={"messages": [HumanMessage(content="hi"), AIMessage(content="reply")]},
+            state={
+                "messages": [HumanMessage(content="hi"), AIMessage(content="reply")]
+            },
             runtime=None,
         )
         ctx.add.assert_called_once()
@@ -293,7 +295,9 @@ class TestWrapToolCall:
                 HumanMessage(content="find OB info"),
                 AIMessage(
                     content="Let me search.",
-                    tool_calls=[{"name": tool_name, "args": {"q": "OB"}, "id": tool_id}],
+                    tool_calls=[
+                        {"name": tool_name, "args": {"q": "OB"}, "id": tool_id}
+                    ],
                 ),
             ]
         return SimpleNamespace(
@@ -534,7 +538,9 @@ class TestHelpers:
                 tool_calls=[{"name": "t", "args": {}, "id": "abc"}],
             ),
         ]
-        result = ContextSeekMiddleware._reasoning_for_tool_call(msgs, "abc", max_chars=100)
+        result = ContextSeekMiddleware._reasoning_for_tool_call(
+            msgs, "abc", max_chars=100
+        )
         assert result is not None
         assert len(result) == 100
 
@@ -545,7 +551,9 @@ class TestHelpers:
                 tool_calls=[{"name": "t", "args": {}, "id": "abc"}],
             ),
         ]
-        assert ContextSeekMiddleware._reasoning_for_tool_call(msgs, "different-id") is None
+        assert (
+            ContextSeekMiddleware._reasoning_for_tool_call(msgs, "different-id") is None
+        )
 
     def test_append_to_system_creates_when_none(self) -> None:
         result = ContextSeekMiddleware._append_to_system(None, "[ctx]")
@@ -600,9 +608,7 @@ class TestAsyncWrappers:
         ctx.add.side_effect = slow_add
 
         mw = ContextSeekMiddleware(ctx=ctx, scope="s")
-        state = {
-            "messages": [HumanMessage(content="q"), AIMessage(content="a")]
-        }
+        state = {"messages": [HumanMessage(content="q"), AIMessage(content="a")]}
 
         async def runner():
             main_thread = threading.get_ident()

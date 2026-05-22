@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 from contextseek.domain.context_item import ContextItem
-from contextseek.domain.invalidation import DegradedItem, InvalidationResult, propagate_invalidation
+from contextseek.domain.invalidation import (
+    DegradedItem,
+    InvalidationResult,
+    propagate_invalidation,
+)
 from contextseek.domain.links import Link, LinkType
 from contextseek.domain.provenance import Provenance, SourceType
 from contextseek.domain.stages import Stage
@@ -56,7 +60,10 @@ class TestSingleLayerPropagation:
 
         assert len(result.degraded_items) == 1
         assert result.degraded_items[0].item_id == "child"
-        assert result.degraded_items[0].new_confidence < result.degraded_items[0].old_confidence
+        assert (
+            result.degraded_items[0].new_confidence
+            < result.degraded_items[0].old_confidence
+        )
 
     def test_no_dependents_means_empty_result(self):
         parent = _make_item("parent", confidence=0.9)
@@ -222,12 +229,16 @@ class TestDepthLimit:
 
         # Build chain of 15 items
         for i in range(15):
-            links = [Link(target_id=f"item_{i-1}", relation=LinkType.derived_from)] if i > 0 else []
+            links = (
+                [Link(target_id=f"item_{i - 1}", relation=LinkType.derived_from)]
+                if i > 0
+                else []
+            )
             items_map[f"item_{i}"] = _make_item(
                 f"item_{i}", confidence=0.3, links=links, effective_confidence=0.8
             )
             if i > 0:
-                dependents_map.setdefault(f"item_{i-1}", []).append(
+                dependents_map.setdefault(f"item_{i - 1}", []).append(
                     (items_map[f"item_{i}"], LinkType.derived_from, 1.0)
                 )
 

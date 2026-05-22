@@ -31,12 +31,20 @@ class TestAuditLog:
 
     def test_metric_series(self):
         log = AuditLog()
-        log.append(_make_record(metrics=[
-            MetricPoint(name="latency", value=10.0),
-        ]))
-        log.append(_make_record(metrics=[
-            MetricPoint(name="latency", value=20.0),
-        ]))
+        log.append(
+            _make_record(
+                metrics=[
+                    MetricPoint(name="latency", value=10.0),
+                ]
+            )
+        )
+        log.append(
+            _make_record(
+                metrics=[
+                    MetricPoint(name="latency", value=20.0),
+                ]
+            )
+        )
         series = log.metric_series("latency")
         assert series == [10.0, 20.0]
 

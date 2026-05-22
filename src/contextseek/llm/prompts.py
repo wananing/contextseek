@@ -202,7 +202,9 @@ def merge_synthesis_prompt(
     templates: LLMPromptTemplates | None = None,
 ) -> str:
     t = templates or DEFAULT_LLM_PROMPTS
-    item_lines = [f"{idx}. {text[:600]}" for idx, text in enumerate(cluster_texts[:8], start=1)]
+    item_lines = [
+        f"{idx}. {text[:600]}" for idx, text in enumerate(cluster_texts[:8], start=1)
+    ]
     return _render(t.merge_synthesis_template, items="\n".join(item_lines))
 
 
@@ -238,7 +240,10 @@ def dream_consolidation_prompt(
     templates: LLMPromptTemplates | None = None,
 ) -> str:
     t = templates or DEFAULT_LLM_PROMPTS
-    item_lines = [f"{idx}. {item.content_text[:300]}" for idx, item in enumerate(cluster_items[:6], start=1)]
+    item_lines = [
+        f"{idx}. {item.content_text[:300]}"
+        for idx, item in enumerate(cluster_items[:6], start=1)
+    ]
     return _render(t.dream_consolidation_template, items="\n".join(item_lines))
 
 

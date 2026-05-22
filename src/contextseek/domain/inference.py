@@ -44,7 +44,8 @@ def infer_stage_with_classifier(
     source_type: SourceType,
     content: str | dict[str, Any],
     *,
-    classify_fn: Callable[[SourceType, str | dict[str, Any], Stage], Stage | None] | None = None,
+    classify_fn: Callable[[SourceType, str | dict[str, Any], Stage], Stage | None]
+    | None = None,
 ) -> Stage:
     """Infer stage with optional LLM/classifier override.
 
@@ -92,7 +93,9 @@ def build_provenance(
     return Provenance(
         source_type=source_type,
         source_id=source,
-        confidence=confidence if confidence is not None else infer_confidence(source_type),
+        confidence=confidence
+        if confidence is not None
+        else infer_confidence(source_type),
         verified=verified,
         created_by=created_by,
         context=context,

@@ -37,22 +37,33 @@ class TestAccessControl:
     def test_scope_mismatch(self):
         strategy = WriteStrategy(acl_enabled=True)
         payload = {"scope": "acme/proj/user1"}
-        assert can_access_payload(payload, scope="acme/proj/user2", strategy=strategy) is False
+        assert (
+            can_access_payload(payload, scope="acme/proj/user2", strategy=strategy)
+            is False
+        )
 
     def test_scope_match(self):
         strategy = WriteStrategy(acl_enabled=True)
         payload = {"scope": "acme/proj/user1"}
-        assert can_access_payload(payload, scope="acme/proj/user1", strategy=strategy) is True
+        assert (
+            can_access_payload(payload, scope="acme/proj/user1", strategy=strategy)
+            is True
+        )
 
     def test_acl_disabled(self):
         strategy = WriteStrategy(acl_enabled=False)
         payload = {"scope": "acme/proj/user1"}
-        assert can_access_payload(payload, scope="acme/proj/user1", strategy=strategy) is True
+        assert (
+            can_access_payload(payload, scope="acme/proj/user1", strategy=strategy)
+            is True
+        )
 
 
 class TestApplyWritePolicy:
     def test_drop_fields(self):
         strategy = WriteStrategy(drop_fields=("secret",))
-        result = apply_write_policy({"name": "ok", "secret": "hidden"}, strategy=strategy)
+        result = apply_write_policy(
+            {"name": "ok", "secret": "hidden"}, strategy=strategy
+        )
         assert "secret" not in result
         assert result["name"] == "ok"

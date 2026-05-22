@@ -29,7 +29,7 @@ class HeuristicExtractor:
 
     def __init__(self, mode: str = "full"):
         """Args:
-            mode: "full" (all slices), "summary" (first 3 tool_calls), "" (input/output only)
+        mode: "full" (all slices), "summary" (first 3 tool_calls), "" (input/output only)
         """
         self._mode = mode
 
@@ -42,31 +42,35 @@ class HeuristicExtractor:
 
         # Extract input insight
         if content.get("input"):
-            results.append(self._make_insight(
-                item, f"Task: {content['input']}", "trace_input"
-            ))
+            results.append(
+                self._make_insight(item, f"Task: {content['input']}", "trace_input")
+            )
 
         # Extract tool call insights
         tool_calls = content.get("tool_calls", [])
         limit = 3 if self._mode == "summary" else len(tool_calls)
         if self._mode != "":
             for i, tc in enumerate(tool_calls[:limit]):
-                tool_name = tc.get("tool", "unknown") if isinstance(tc, dict) else str(tc)
+                tool_name = (
+                    tc.get("tool", "unknown") if isinstance(tc, dict) else str(tc)
+                )
                 result = tc.get("result", "") if isinstance(tc, dict) else ""
                 text = f"Tool '{tool_name}' → {result}"
                 results.append(self._make_insight(item, text, f"trace_tool_{i}"))
 
         # Extract output insight
         if content.get("output"):
-            results.append(self._make_insight(
-                item, f"Result: {content['output']}", "trace_output"
-            ))
+            results.append(
+                self._make_insight(item, f"Result: {content['output']}", "trace_output")
+            )
 
         # Extract feedback insight
         if content.get("feedback"):
-            results.append(self._make_insight(
-                item, f"Feedback: {content['feedback']}", "trace_feedback"
-            ))
+            results.append(
+                self._make_insight(
+                    item, f"Feedback: {content['feedback']}", "trace_feedback"
+                )
+            )
 
         return results
 
@@ -122,19 +126,21 @@ class LLMExtractor:
         except Exception:
             return self._fallback.extract(item)
 
-        return [ContextItem(
-            id=_generate_id(),
-            content=summary,
-            scope=item.scope,
-            provenance=Provenance(
-                source_type=SourceType.trace_extraction,
-                source_id=item.id,
-                confidence=0.7,
-                context="LLM-summarized trace insight",
-            ),
-            stage=Stage.extracted,
-            stability=Stability.transient,
-            tags=["llm_summary", "auto_extracted"],
-            links=[Link(target_id=item.id, relation=LinkType.derived_from)],
-            created_at=_utc_now(),
-        )]
+        return [
+            ContextItem(
+                id=_generate_id(),
+                content=summary,
+                scope=item.scope,
+                provenance=Provenance(
+                    source_type=SourceType.trace_extraction,
+                    source_id=item.id,
+                    confidence=0.7,
+                    context="LLM-summarized trace insight",
+                ),
+                stage=Stage.extracted,
+                stability=Stability.transient,
+                tags=["llm_summary", "auto_extracted"],
+                links=[Link(target_id=item.id, relation=LinkType.derived_from)],
+                created_at=_utc_now(),
+            )
+        ]

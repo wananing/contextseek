@@ -65,7 +65,9 @@ class SkillExporter:
         stype = _skill_type(item)
 
         if stype == "prompt":
-            body = item.content.get("body", "") if isinstance(item.content, dict) else ""
+            body = (
+                item.content.get("body", "") if isinstance(item.content, dict) else ""
+            )
             description = f"{desc}\n\n{body}".strip() if body else desc
             parameters = _empty_schema()
         else:
@@ -88,7 +90,9 @@ class SkillExporter:
         stype = _skill_type(item)
 
         if stype == "prompt":
-            body = item.content.get("body", "") if isinstance(item.content, dict) else ""
+            body = (
+                item.content.get("body", "") if isinstance(item.content, dict) else ""
+            )
             description = f"{desc}\n\n{body}".strip() if body else desc
             input_schema = _empty_schema()
         else:
@@ -147,12 +151,7 @@ class SkillExporter:
             body = item.content.get("body", "")
 
         tag_str = ", ".join(tags) if tags else ""
-        frontmatter = (
-            "---\n"
-            f"name: {name}\n"
-            f"description: {desc}\n"
-            f"version: {version}\n"
-        )
+        frontmatter = f"---\nname: {name}\ndescription: {desc}\nversion: {version}\n"
         if tag_str:
             frontmatter += f"tags: [{tag_str}]\n"
         frontmatter += "---\n"

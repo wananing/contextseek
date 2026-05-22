@@ -9,7 +9,11 @@ from contextseek.domain.stages import Stage, Stability
 from contextseek.evolution.distiller import SkillDistiller
 from contextseek.evolution.engine import EvolutionEngine
 from contextseek.evolution.extractor import HeuristicExtractor
-from contextseek.evolution.merger import ConvergenceMerger, semantic_similarity, decay_score
+from contextseek.evolution.merger import (
+    ConvergenceMerger,
+    semantic_similarity,
+    decay_score,
+)
 
 
 def _make_item(content="test", stage=Stage.raw, scope="t/p/s", **kwargs):
@@ -34,11 +38,13 @@ def _make_item(content="test", stage=Stage.raw, scope="t/p/s", **kwargs):
 class TestHeuristicExtractor:
     def test_extract_trace(self):
         extractor = HeuristicExtractor()
-        item = _make_item(content={
-            "input": "write a function",
-            "output": "here is the code",
-            "tool_calls": [{"tool": "editor", "result": "file saved"}],
-        })
+        item = _make_item(
+            content={
+                "input": "write a function",
+                "output": "here is the code",
+                "tool_calls": [{"tool": "editor", "result": "file saved"}],
+            }
+        )
         results = extractor.extract(item)
         assert len(results) >= 2  # input + tool + output
         assert all(r.stage == Stage.extracted for r in results)
@@ -63,9 +69,18 @@ class TestConvergenceMerger:
     def test_merge_similar_items(self):
         merger = ConvergenceMerger(similarity_threshold=0.5, min_cluster_size=2)
         items = [
-            _make_item(content="the quick brown fox jumps over the lazy dog", stage=Stage.extracted),
-            _make_item(content="the quick brown fox jumps over the lazy cat", stage=Stage.extracted),
-            _make_item(content="the quick brown fox jumps over the lazy bird", stage=Stage.extracted),
+            _make_item(
+                content="the quick brown fox jumps over the lazy dog",
+                stage=Stage.extracted,
+            ),
+            _make_item(
+                content="the quick brown fox jumps over the lazy cat",
+                stage=Stage.extracted,
+            ),
+            _make_item(
+                content="the quick brown fox jumps over the lazy bird",
+                stage=Stage.extracted,
+            ),
         ]
         kept, archived = merger.merge(items)
         assert len(archived) >= 2
@@ -100,7 +115,11 @@ class TestSkillDistiller:
     def test_distill(self):
         distiller = SkillDistiller()
         item = _make_item(
-            content={"body": "run tests", "name": "run_tests", "description": "Run test suite"},
+            content={
+                "body": "run tests",
+                "name": "run_tests",
+                "description": "Run test suite",
+            },
             stage=Stage.knowledge,
             tags=["procedure"],
             access_count=20,
@@ -128,13 +147,15 @@ class TestEvolutionEngine:
         )
         new_items, archived, report = engine.evolve([item])
         assert report.evolved_count > 0
-        assert all(it.stage == Stage.extracted for it in new_items if it.stage == Stage.extracted)
+        assert all(
+            it.stage == Stage.extracted
+            for it in new_items
+            if it.stage == Stage.extracted
+        )
 
 
 class TestDecayScore:
     def test_recent_items_score_higher(self):
         recent = _make_item(created_at=_utc_now())
-        old = _make_item(
-            created_at=datetime.now(timezone.utc) - timedelta(days=30)
-        )
+        old = _make_item(created_at=datetime.now(timezone.utc) - timedelta(days=30))
         assert decay_score(recent) > decay_score(old)

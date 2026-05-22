@@ -67,7 +67,9 @@ _SCOPE_VAR: ContextVar[str | None] = ContextVar(
 )
 
 
-class ContextSeekMiddleware(AgentMiddleware[AgentState[ResponseT], ContextT, ResponseT]):
+class ContextSeekMiddleware(
+    AgentMiddleware[AgentState[ResponseT], ContextT, ResponseT]
+):
     """LangChain ``AgentMiddleware`` that bridges ContextSeek into the agent loop.
 
     - ``wrap_model_call``: retrieve relevant context and append it to ``system_message``
@@ -129,7 +131,11 @@ class ContextSeekMiddleware(AgentMiddleware[AgentState[ResponseT], ContextT, Res
         from contextseek.embedders.langchain_embedder import LangChainEmbedder
         from contextseek.storage.ob_backend import OceanBaseBackend
         from contextseek.storage.storage_adapter import SeekVFSStorageAdapter
-        from contextseek.config.factory import build_embedder, build_llm, build_summarizer
+        from contextseek.config.factory import (
+            build_embedder,
+            build_llm,
+            build_summarizer,
+        )
         from contextseek.config.settings import ContextSeekSettings
         from contextseek.routing.resolver import ScopeResolver
 
@@ -214,9 +220,7 @@ class ContextSeekMiddleware(AgentMiddleware[AgentState[ResponseT], ContextT, Res
     # ── before_agent ──────────────────────────────────────
 
     @override
-    def before_agent(
-        self, state: AgentState[Any], runtime: Runtime[ContextT]
-    ) -> None:
+    def before_agent(self, state: AgentState[Any], runtime: Runtime[ContextT]) -> None:
         scope = self._scope or getattr(runtime, "thread_id", None) or "default"
         # Set the per-session scope. Do NOT mutate ``self._scope`` — the
         # instance is shared across concurrent sessions.
@@ -250,7 +254,9 @@ class ContextSeekMiddleware(AgentMiddleware[AgentState[ResponseT], ContextT, Res
     async def awrap_model_call(
         self,
         request: ModelRequest[ContextT],
-        handler: Callable[[ModelRequest[ContextT]], Awaitable[ModelResponse[ResponseT]]],
+        handler: Callable[
+            [ModelRequest[ContextT]], Awaitable[ModelResponse[ResponseT]]
+        ],
     ) -> ModelResponse[ResponseT]:
         query = self._last_user_text(request.messages)
         if not query:
@@ -270,9 +276,7 @@ class ContextSeekMiddleware(AgentMiddleware[AgentState[ResponseT], ContextT, Res
     # ── after_model ───────────────────────────────────────
 
     @override
-    def after_model(
-        self, state: AgentState[Any], runtime: Runtime[ContextT]
-    ) -> None:
+    def after_model(self, state: AgentState[Any], runtime: Runtime[ContextT]) -> None:
         if not self.auto_store:
             return None
         messages = state["messages"]
@@ -394,7 +398,9 @@ class ContextSeekMiddleware(AgentMiddleware[AgentState[ResponseT], ContextT, Res
             pass
 
     @staticmethod
-    def _extract_tool_call_fields(request: Any) -> tuple[str, dict[str, Any], str | None]:
+    def _extract_tool_call_fields(
+        request: Any,
+    ) -> tuple[str, dict[str, Any], str | None]:
         tool_call = getattr(request, "tool_call", None) or {}
         tool = getattr(request, "tool", None)
 
@@ -429,18 +435,14 @@ class ContextSeekMiddleware(AgentMiddleware[AgentState[ResponseT], ContextT, Res
     # ── after_agent ───────────────────────────────────────
 
     @override
-    def after_agent(
-        self, state: AgentState[Any], runtime: Runtime[ContextT]
-    ) -> None:
+    def after_agent(self, state: AgentState[Any], runtime: Runtime[ContextT]) -> None:
         if not self.auto_compact or self.compact_every <= 0:
             return None
         scope = self._current_scope()
         # Atomic read-modify-write under the state lock so concurrent
         # ``after_agent`` calls don't lose increments.
         with self._compact_state_lock:
-            self._compact_counters[scope] = (
-                self._compact_counters.get(scope, 0) + 1
-            )
+            self._compact_counters[scope] = self._compact_counters.get(scope, 0) + 1
             if self._compact_counters[scope] < self.compact_every:
                 return None
             self._compact_counters[scope] = 0
@@ -514,7 +516,7 @@ class ContextSeekMiddleware(AgentMiddleware[AgentState[ResponseT], ContextT, Res
         for m in reversed(messages):
             if not isinstance(m, AIMessage):
                 continue
-            for tc in (m.tool_calls or []):
+            for tc in m.tool_calls or []:
                 if isinstance(tc, dict) and tc.get("id") == tool_call_id:
                     content = (
                         m.content if isinstance(m.content, str) else str(m.content)
@@ -540,7 +542,9 @@ class ContextSeekMiddleware(AgentMiddleware[AgentState[ResponseT], ContextT, Res
         content = system_message.content
         if isinstance(content, str):
             return SystemMessage(content=content + "\n" + context_block)
-        return SystemMessage(content=[*content, {"type": "text", "text": context_block}])
+        return SystemMessage(
+            content=[*content, {"type": "text", "text": context_block}]
+        )
 
 
 __all__ = ["ContextSeekMiddleware"]

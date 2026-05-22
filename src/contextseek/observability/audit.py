@@ -64,7 +64,9 @@ class AuditLog:
             path = Path(self.persist_path)
             path.parent.mkdir(parents=True, exist_ok=True)
             with path.open("a", encoding="utf-8") as handle:
-                handle.write(json.dumps(_record_to_dict(record), ensure_ascii=False) + "\n")
+                handle.write(
+                    json.dumps(_record_to_dict(record), ensure_ascii=False) + "\n"
+                )
         if self.metrics_path is not None:
             path = Path(self.metrics_path)
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -88,7 +90,9 @@ class AuditLog:
                     values.append(metric.value)
         return values
 
-    def recent(self, *, limit: int = 50, action: str | None = None) -> list[AuditRecord]:
+    def recent(
+        self, *, limit: int = 50, action: str | None = None
+    ) -> list[AuditRecord]:
         """Return recent audit records in reverse chronological order."""
         safe_limit = max(1, min(limit, 200))
         if action is None:
@@ -143,7 +147,9 @@ class AuditLog:
 
 
 def _labels(values: dict[str, str]) -> str:
-    return ",".join(f'{key}="{str(value).replace(chr(34), "")}"' for key, value in values.items())
+    return ",".join(
+        f'{key}="{str(value).replace(chr(34), "")}"' for key, value in values.items()
+    )
 
 
 def _record_to_dict(record: AuditRecord) -> dict[str, Any]:

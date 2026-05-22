@@ -290,9 +290,7 @@ class OceanBaseBackend(BackendProtocol):
                 if version_row is None:
                     return
                 version_str = str(version_row[0])
-                m = re.search(
-                    r"OceanBase[^-]*-v(\d+)\.(\d+)\.(\d+)", version_str, re.I
-                )
+                m = re.search(r"OceanBase[^-]*-v(\d+)\.(\d+)\.(\d+)", version_str, re.I)
                 if not m:
                     return
                 major, minor, patch = (
@@ -377,9 +375,7 @@ class OceanBaseBackend(BackendProtocol):
         assert self._obvector is not None
         try:
             with self._obvector.engine.connect() as conn:
-                rows = conn.execute(
-                    text(f"DESCRIBE `{self._table_name}`")
-                ).fetchall()
+                rows = conn.execute(text(f"DESCRIBE `{self._table_name}`")).fetchall()
         except Exception as exc:
             logger.warning(f"dim validation skipped (DESCRIBE failed): {exc}")
             return
@@ -458,7 +454,9 @@ class OceanBaseBackend(BackendProtocol):
         if row is None:
             raise NotFoundError(path)
         payload_json, content, abstract, summary, abstract_embedding = row
-        payload_dict = _merge_hoisted(payload_json, content, abstract, summary, abstract_embedding)
+        payload_dict = _merge_hoisted(
+            payload_json, content, abstract, summary, abstract_embedding
+        )
         return FileData(
             content=json.dumps(payload_dict, ensure_ascii=False).encode("utf-8"),
             encoding="utf-8",
@@ -485,7 +483,9 @@ class OceanBaseBackend(BackendProtocol):
         out: dict[str, FileData] = {}
         for row in rows:
             ref, payload_json, content, abstract, summary, abstract_embedding = row
-            payload_dict = _merge_hoisted(payload_json, content, abstract, summary, abstract_embedding)
+            payload_dict = _merge_hoisted(
+                payload_json, content, abstract, summary, abstract_embedding
+            )
             out[ref] = FileData(
                 content=json.dumps(payload_dict, ensure_ascii=False).encode("utf-8"),
                 encoding="utf-8",
@@ -510,9 +510,7 @@ class OceanBaseBackend(BackendProtocol):
                 vec_fut = pool.submit(
                     self._vector_search, query_embedding, prefix, candidate_k
                 )
-                fts_fut = pool.submit(
-                    self._fulltext_search, query, prefix, candidate_k
-                )
+                fts_fut = pool.submit(self._fulltext_search, query, prefix, candidate_k)
             return self._rrf_fusion(
                 vec_fut.result(),
                 fts_fut.result(),
@@ -538,9 +536,7 @@ class OceanBaseBackend(BackendProtocol):
     ) -> list[dict[str, Any]]:
         assert self._obvector is not None and self._table is not None
         table = self._table
-        where_clause = (
-            [table.c["namespace"].like(f"{prefix}%")] if prefix else []
-        )
+        where_clause = [table.c["namespace"].like(f"{prefix}%")] if prefix else []
 
         try:
             results = self._obvector.ann_search(
@@ -550,7 +546,15 @@ class OceanBaseBackend(BackendProtocol):
                 distance_func=_distance_func(self._vidx_metric_type),
                 with_dist=True,
                 topk=k,
-                output_column_names=["id", "ref", "payload_json", "content", "abstract", "summary", "abstract_embedding"],
+                output_column_names=[
+                    "id",
+                    "ref",
+                    "payload_json",
+                    "content",
+                    "abstract",
+                    "summary",
+                    "abstract_embedding",
+                ],
                 where_clause=where_clause,
             )
         except Exception as exc:
@@ -593,9 +597,7 @@ class OceanBaseBackend(BackendProtocol):
             return []
 
         table = self._table
-        ns_cond = (
-            table.c["namespace"].like(f"{prefix}%") if prefix else None
-        )
+        ns_cond = table.c["namespace"].like(f"{prefix}%") if prefix else None
 
         fts_where_expr = text(
             "MATCH(fulltext_content) AGAINST(:q_where IN NATURAL LANGUAGE MODE)"
@@ -604,19 +606,16 @@ class OceanBaseBackend(BackendProtocol):
             "MATCH(fulltext_content) AGAINST(:q_score IN NATURAL LANGUAGE MODE) AS fts_score"
         ).bindparams(bindparam("q_score", query))
 
-        stmt = (
-            select(
-                table.c["id"],
-                table.c["ref"],
-                table.c["payload_json"],
-                table.c["content"],
-                table.c["abstract"],
-                table.c["summary"],
-                table.c["abstract_embedding"],
-                fts_score_expr,
-            )
-            .where(fts_where_expr)
-        )
+        stmt = select(
+            table.c["id"],
+            table.c["ref"],
+            table.c["payload_json"],
+            table.c["content"],
+            table.c["abstract"],
+            table.c["summary"],
+            table.c["abstract_embedding"],
+            fts_score_expr,
+        ).where(fts_where_expr)
         if ns_cond is not None:
             stmt = stmt.where(ns_cond)
         stmt = stmt.order_by(text("fts_score DESC")).limit(k)
@@ -627,17 +626,18 @@ class OceanBaseBackend(BackendProtocol):
                     rows = [dict(r._mapping) for r in conn.execute(stmt)]
         except Exception as exc:
             logger.warning(f"FTS failed, fallback to LIKE: {exc}")
-            like_stmt = (
-                select(
-                    table.c["id"],
-                    table.c["ref"],
-                    table.c["payload_json"],
-                    table.c["content"],
-                    table.c["abstract"],
-                    table.c["summary"],
-                    table.c["abstract_embedding"],
+            like_stmt = select(
+                table.c["id"],
+                table.c["ref"],
+                table.c["payload_json"],
+                table.c["content"],
+                table.c["abstract"],
+                table.c["summary"],
+                table.c["abstract_embedding"],
+            ).where(
+                table.c["fulltext_content"].like(
+                    f"%{_escape_like(query)}%", escape="\\"
                 )
-                .where(table.c["fulltext_content"].like(f"%{_escape_like(query)}%", escape="\\"))
             )
             if ns_cond is not None:
                 like_stmt = like_stmt.where(ns_cond)
@@ -692,9 +692,9 @@ class OceanBaseBackend(BackendProtocol):
             else:
                 all_docs[doc_id] = {**hit, "_rrf": contrib}
 
-        ranked = sorted(
-            all_docs.values(), key=lambda x: x["_rrf"], reverse=True
-        )[:limit]
+        ranked = sorted(all_docs.values(), key=lambda x: x["_rrf"], reverse=True)[
+            :limit
+        ]
 
         hits: list[SearchHit] = []
         for doc in ranked:
@@ -731,7 +731,7 @@ class OceanBaseBackend(BackendProtocol):
         for row in rows:
             ref = row[0]
             updated_at = row[1]
-            rel = ref[len(prefix):]
+            rel = ref[len(prefix) :]
             if not recursive and "/" in rel:
                 continue
             if pattern and not fnmatch.fnmatch(rel, pattern):
@@ -787,9 +787,7 @@ class OceanBaseBackend(BackendProtocol):
         if new_embedding is not None:
             update_values["abstract_embedding"] = new_embedding
         update_stmt = (
-            table.update()
-            .where(table.c["ref"] == path)
-            .values(**update_values)
+            table.update().where(table.c["ref"] == path).values(**update_values)
         )
         with self._obvector.engine.connect() as conn:
             with conn.begin():
@@ -807,7 +805,9 @@ class OceanBaseBackend(BackendProtocol):
         stmt = select(table.c["ref"], table.c["content"])
         if prefix:
             stmt = stmt.where(table.c["ref"].like(f"{prefix}%"))
-        stmt = stmt.where(table.c["content"].like(f"%{_escape_like(pattern)}%", escape="\\"))
+        stmt = stmt.where(
+            table.c["content"].like(f"%{_escape_like(pattern)}%", escape="\\")
+        )
         with self._obvector.engine.connect() as conn:
             rows = conn.execute(stmt).fetchall()
         out: list[GrepMatch] = []

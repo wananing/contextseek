@@ -85,7 +85,7 @@ class InMemoryBackend(BackendProtocol):
         for key, data in self._data.items():
             if not key.startswith(prefix):
                 continue
-            rest = key[len(prefix):]
+            rest = key[len(prefix) :]
             if not recursive and "/" in rest:
                 continue
             if pattern is not None and not fnmatch.fnmatch(rest, pattern):

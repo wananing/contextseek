@@ -177,7 +177,9 @@ class StrategyRouter:
                 key = f"{tenant_id}:{subject_id}"
                 bucket = int(hashlib.md5(key.encode()).hexdigest()[:8], 16) % 100
                 if bucket < rule.percent:
-                    return self.strategies.get(rule.version, default or StrategyConfig())
+                    return self.strategies.get(
+                        rule.version, default or StrategyConfig()
+                    )
             elif rule.percent == 100 and not rule.tenant_ids and not rule.subject_ids:
                 return self.strategies.get(rule.version, default or StrategyConfig())
         return default or StrategyConfig()

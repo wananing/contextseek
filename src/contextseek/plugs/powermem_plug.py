@@ -67,7 +67,9 @@ class PowerMemPlug:
                     meta.setdefault(key, rec[key])
 
             mem_id = rec.get("id")
-            source = f"{source_prefix}://{mem_id}" if mem_id is not None else source_prefix
+            source = (
+                f"{source_prefix}://{mem_id}" if mem_id is not None else source_prefix
+            )
 
             tags = list(meta.pop("tags", []) or [])
             entry: dict[str, Any] = {

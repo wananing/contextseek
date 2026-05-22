@@ -8,7 +8,12 @@ class _FakeMemory:
     def get_all(self, user_id=None, agent_id=None, run_id=None, limit=100, offset=0):
         return {
             "results": [
-                {"id": 9, "content": "sync me", "user_id": user_id, "agent_id": agent_id}
+                {
+                    "id": 9,
+                    "content": "sync me",
+                    "user_id": user_id,
+                    "agent_id": agent_id,
+                }
             ]
         }
 

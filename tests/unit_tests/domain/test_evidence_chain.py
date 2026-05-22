@@ -50,7 +50,9 @@ class TestSingleItem:
 
     def test_single_item_low_confidence_flags_reverification(self):
         item = _make_item("weak", confidence=0.2)
-        chain = compute_evidence_chain(item, lambda _: None, reverification_threshold=0.4)
+        chain = compute_evidence_chain(
+            item, lambda _: None, reverification_threshold=0.4
+        )
 
         assert chain.needs_reverification is True
 
@@ -254,7 +256,11 @@ class TestDepthLimit:
         # Build a chain of depth 20
         items: dict[str, ContextItem] = {}
         for i in range(20):
-            links = [Link(target_id=f"item_{i-1}", relation=LinkType.derived_from)] if i > 0 else []
+            links = (
+                [Link(target_id=f"item_{i - 1}", relation=LinkType.derived_from)]
+                if i > 0
+                else []
+            )
             items[f"item_{i}"] = _make_item(f"item_{i}", confidence=0.9, links=links)
 
         chain = compute_evidence_chain(items["item_19"], items.get, max_depth=5)
@@ -296,12 +302,16 @@ class TestLinkStrength:
         strong_child = _make_item(
             "strong_child",
             confidence=0.5,
-            links=[Link(target_id="parent", relation=LinkType.derived_from, strength=1.0)],
+            links=[
+                Link(target_id="parent", relation=LinkType.derived_from, strength=1.0)
+            ],
         )
         weak_child = _make_item(
             "weak_child",
             confidence=0.5,
-            links=[Link(target_id="parent", relation=LinkType.derived_from, strength=0.3)],
+            links=[
+                Link(target_id="parent", relation=LinkType.derived_from, strength=0.3)
+            ],
         )
 
         items = {"parent": parent}

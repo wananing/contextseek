@@ -21,15 +21,24 @@ class TestInference:
         assert infer_stage(SourceType.trace_extraction, trace_content) == Stage.raw
 
     def test_infer_stage_agent_inference(self):
-        assert infer_stage(SourceType.agent_inference, "inferred fact") == Stage.extracted
+        assert (
+            infer_stage(SourceType.agent_inference, "inferred fact") == Stage.extracted
+        )
 
     def test_infer_stage_document(self):
         assert infer_stage(SourceType.document, "doc text") == Stage.knowledge
 
     def test_infer_stability(self):
-        assert infer_stability(Stage.raw, SourceType.trace_extraction) == Stability.transient
-        assert infer_stability(Stage.knowledge, SourceType.human_input) == Stability.stable
-        assert infer_stability(Stage.skill, SourceType.distillation) == Stability.permanent
+        assert (
+            infer_stability(Stage.raw, SourceType.trace_extraction)
+            == Stability.transient
+        )
+        assert (
+            infer_stability(Stage.knowledge, SourceType.human_input) == Stability.stable
+        )
+        assert (
+            infer_stability(Stage.skill, SourceType.distillation) == Stability.permanent
+        )
 
     def test_infer_confidence(self):
         assert infer_confidence(SourceType.human_input) >= 0.8

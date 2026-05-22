@@ -101,7 +101,9 @@ def compute_decay(
 
     # Recency bonus: recent accesses slow decay
     if item.last_accessed_at:
-        since_access_days = max(0.0, (now - item.last_accessed_at).total_seconds() / 86400.0)
+        since_access_days = max(
+            0.0, (now - item.last_accessed_at).total_seconds() / 86400.0
+        )
         recency_factor = math.pow(2.0, -since_access_days / half_life)
         access_bonus *= recency_factor
 

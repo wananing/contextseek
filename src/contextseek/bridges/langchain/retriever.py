@@ -19,7 +19,12 @@ if TYPE_CHECKING:
 
 
 def _to_documents(
-    *, client: "ContextSeek", scope: str, query: str, k: int, stage: "Stage | None" = None
+    *,
+    client: "ContextSeek",
+    scope: str,
+    query: str,
+    k: int,
+    stage: "Stage | None" = None,
 ) -> list[Document]:
     """Convert ContextSeek ranked hits to LangChain Documents."""
     response = client.retrieve(query, scope=scope, k=k)
@@ -75,7 +80,11 @@ if LANGCHAIN_RETRIEVER_AVAILABLE:
         ) -> list[Document]:
             del run_manager
             return _to_documents(
-                client=self.client, scope=self.scope, query=query, k=self.k, stage=self.stage
+                client=self.client,
+                scope=self.scope,
+                query=query,
+                k=self.k,
+                stage=self.stage,
             )
 
         def get_relevant_documents(self, query: str) -> list[Document]:
@@ -114,7 +123,11 @@ else:
 
         def get_relevant_documents(self, query: str) -> list[Document]:
             return _to_documents(
-                client=self.client, scope=self.scope, query=query, k=self.k, stage=self.stage
+                client=self.client,
+                scope=self.scope,
+                query=query,
+                k=self.k,
+                stage=self.stage,
             )
 
         @classmethod

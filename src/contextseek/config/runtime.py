@@ -91,13 +91,17 @@ def build_adapter(config: RuntimeConfig) -> SeekVFSAdapter:
     else:
         msg = f"unsupported backend: {config.backend}"
         raise ValueError(msg)
-    vfs = VFS(routes={config.uri_scheme: {"backend": backend}}, scheme=config.uri_scheme)
+    vfs = VFS(
+        routes={config.uri_scheme: {"backend": backend}}, scheme=config.uri_scheme
+    )
     hot_adapter: SeekVFSStorageAdapter = SeekVFSStorageAdapter(vfs)
     if config.cold_backend:
         if config.cold_backend == "memory":
             cold_backend = InMemoryBackend()
         elif config.cold_backend == "file":
-            cold_backend = FileBackend(config.cold_storage_path, scheme=config.uri_scheme)
+            cold_backend = FileBackend(
+                config.cold_storage_path, scheme=config.uri_scheme
+            )
             cold_backend.initialize()
         else:
             msg = f"unsupported cold backend: {config.cold_backend}"
@@ -206,7 +210,9 @@ def normalize_api_keys(raw: dict[str, Any]) -> dict[str, ApiKeyPolicy]:
                     allow_write = True
                     allow_delete = True
                     allow_observability = True
-            subjects = tuple(str(item) for item in value.get("subjects", []) if str(item))
+            subjects = tuple(
+                str(item) for item in value.get("subjects", []) if str(item)
+            )
             scopes = tuple(str(item) for item in value.get("scopes", []) if str(item))
             policies[api_key] = ApiKeyPolicy(
                 tenant_id=tenant_id,

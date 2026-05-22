@@ -6,7 +6,10 @@ from typing import Any
 
 from contextseek._version import __version__ as PACKAGE_VERSION
 from contextseek.client.contextseek import ContextSeek
-from contextseek.domain.serialization import deserialize_context_item, serialize_context_item
+from contextseek.domain.serialization import (
+    deserialize_context_item,
+    serialize_context_item,
+)
 
 try:
     from fastapi import FastAPI
@@ -195,7 +198,9 @@ def create_app(client: ContextSeek | None = None) -> FastAPI:
             "total_dream_items": report.total_dream_items,
             "consolidation_patterns": report.consolidation.patterns_found,
             "consolidation_items": len(report.consolidation.items),
-            "divergence_items": len(report.divergence.items) if report.divergence else 0,
+            "divergence_items": len(report.divergence.items)
+            if report.divergence
+            else 0,
         }
 
     @app.post("/feedback")
@@ -251,6 +256,7 @@ def create_app(client: ContextSeek | None = None) -> FastAPI:
     @app.post("/items")
     async def list_items(req: ItemsRequest) -> dict[str, Any]:
         from contextseek.domain.stages import Stage
+
         stage = Stage(req.stage) if req.stage else None
         result_items = ctx.items(scope=req.scope, stage=stage)
         return {"items": [serialize_context_item(it) for it in result_items]}

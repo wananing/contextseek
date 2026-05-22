@@ -76,8 +76,10 @@ class TestContextItem:
         assert item.searchable is False
 
     def test_links(self):
-        item = _make_item(links=[
-            Link(target_id="other-id", relation=LinkType.derived_from),
-        ])
+        item = _make_item(
+            links=[
+                Link(target_id="other-id", relation=LinkType.derived_from),
+            ]
+        )
         assert len(item.links) == 1
         assert item.links[0].relation == LinkType.derived_from

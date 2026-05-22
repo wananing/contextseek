@@ -22,7 +22,9 @@ def _lint_scope(scope: str) -> list[str]:
     """Return a list of lint messages for *scope*, empty if clean."""
     issues: list[str] = []
     if not scope:
-        issues.append("scope is empty; using a hierarchical scope is strongly recommended")
+        issues.append(
+            "scope is empty; using a hierarchical scope is strongly recommended"
+        )
         return issues
     if "/" not in scope:
         issues.append(
@@ -103,7 +105,9 @@ class ScopeBuilder:
     def build(self) -> str:
         """Return the assembled scope string."""
         if not self._parts:
-            raise ValueError("ScopeBuilder has no segments; call at least one segment method first")
+            raise ValueError(
+                "ScopeBuilder has no segments; call at least one segment method first"
+            )
         return "/".join(self._parts)
 
     # -- factory -------------------------------------------------------------
@@ -254,7 +258,7 @@ def build_scope_tree(
         if root:
             prefix = root.strip("/") + "/"
             if display_scope.startswith(prefix):
-                display_scope = display_scope[len(prefix):]
+                display_scope = display_scope[len(prefix) :]
 
         knowledge_count = sum(1 for it in items if it.stage == Stage.knowledge)
         skill_count = sum(1 for it in items if it.stage == Stage.skill)
@@ -283,7 +287,9 @@ def _insert_node(
 ) -> None:
     head, *tail = parts
     if head not in nodes:
-        nodes[head] = ScopeNode(name=head, full_path="", item_count=0, knowledge_count=0, skill_count=0)
+        nodes[head] = ScopeNode(
+            name=head, full_path="", item_count=0, knowledge_count=0, skill_count=0
+        )
     node = nodes[head]
     if not tail:
         node.full_path = full_path

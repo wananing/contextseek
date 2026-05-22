@@ -30,7 +30,10 @@ class TraceSink:
     def validate_environment(cls) -> tuple[bool, str | None]:
         if DEEPAGENTS_AVAILABLE:
             return True, None
-        return False, "deepagents package is required for native Deep Agents integration."
+        return (
+            False,
+            "deepagents package is required for native Deep Agents integration.",
+        )
 
     @classmethod
     def from_client(cls, client: Any, *, scope: str) -> "TraceSink":

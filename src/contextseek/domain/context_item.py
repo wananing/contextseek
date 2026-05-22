@@ -113,7 +113,9 @@ class ContextItem:
         if not self.hash:
             self.hash = _compute_hash(self.content)
         if self.stability is None:
-            self.stability = STAGE_DEFAULT_STABILITY.get(self.stage, Stability.transient)
+            self.stability = STAGE_DEFAULT_STABILITY.get(
+                self.stage, Stability.transient
+            )
 
     @property
     def is_deleted(self) -> bool:

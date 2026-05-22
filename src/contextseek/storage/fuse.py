@@ -85,7 +85,9 @@ class ContextSeekFUSEAdapter:
                     "scope": hit.item.scope,
                     "stage": hit.item.stage.value if hit.item.stage else None,
                     "tags": list(hit.item.tags),
-                    "created_at": hit.item.created_at.isoformat() if hit.item.created_at else None,
+                    "created_at": hit.item.created_at.isoformat()
+                    if hit.item.created_at
+                    else None,
                     "summary": hit.item.summary,
                     "searchable": hit.item.searchable,
                 }
@@ -108,10 +110,7 @@ class ContextSeekFUSEAdapter:
     def mount(self, mountpoint: str) -> None:
         """Mount the FUSE filesystem (requires fusepy and kernel FUSE support)."""
         if not FUSE_AVAILABLE:
-            msg = (
-                "fusepy is not installed. "
-                "Install with: pip install fusepy"
-            )
+            msg = "fusepy is not installed. Install with: pip install fusepy"
             raise RuntimeError(msg)
         raise NotImplementedError(
             "Full FUSE Operations integration is planned but not yet implemented. "

@@ -39,7 +39,10 @@ from contextseek.domain.results import (
     RetrieveResponse,
     SearchHit,
 )
-from contextseek.domain.serialization import deserialize_context_item, serialize_context_item
+from contextseek.domain.serialization import (
+    deserialize_context_item,
+    serialize_context_item,
+)
 from contextseek.domain.stages import Stage, Stability
 from contextseek.domain.tools import EXPAND_HINT, ToolSpec, default_tool_specs
 from contextseek.llm.prompts import (
@@ -95,6 +98,7 @@ def _warn_no_summarizer_once() -> None:
 # ---------------------------------------------------------------------------
 # Helper: default in-memory adapter factory
 # ---------------------------------------------------------------------------
+
 
 def _make_default_adapter() -> SeekVFSAdapter:
     """Create a default in-memory SeekVFSAdapter for local/test use."""
@@ -307,7 +311,9 @@ class ContextSeek:
                 item.importance = float(event.metadata["importance"])
             if "summary" in event.metadata:
                 item.summary = str(event.metadata["summary"])
-            if any(key in event.metadata for key in ("embedding", "importance", "summary")):
+            if any(
+                key in event.metadata for key in ("embedding", "importance", "summary")
+            ):
                 self._write_item(item)
 
     def add(
@@ -423,25 +429,37 @@ class ContextSeek:
             )
 
             if result.has_duplicates:
-                dup = next(c for c in result.conflicts if c.conflict_type == ConflictType.duplicate)
+                dup = next(
+                    c
+                    for c in result.conflicts
+                    if c.conflict_type == ConflictType.duplicate
+                )
                 msg = f"exact duplicate exists: {dup.existing_item_id}"
                 raise ValueError(msg)
 
             # Tag near-duplicates and contradictions for visibility
             if result.has_conflicts:
                 conflict_ids = [c.existing_item_id for c in result.conflicts]
-                if any(c.conflict_type == ConflictType.contradiction for c in result.conflicts):
+                if any(
+                    c.conflict_type == ConflictType.contradiction
+                    for c in result.conflicts
+                ):
                     item.tags.append("has_contradiction")
-                if any(c.conflict_type == ConflictType.near_duplicate for c in result.conflicts):
+                if any(
+                    c.conflict_type == ConflictType.near_duplicate
+                    for c in result.conflicts
+                ):
                     item.tags.append("near_duplicate")
                 # Auto-add refuted_by links for contradictions
                 for c in result.conflicts:
                     if c.conflict_type == ConflictType.contradiction:
-                        item.links.append(Link(
-                            target_id=c.existing_item_id,
-                            relation=LinkType.refuted_by,
-                            strength=c.similarity,
-                        ))
+                        item.links.append(
+                            Link(
+                                target_id=c.existing_item_id,
+                                relation=LinkType.refuted_by,
+                                strength=c.similarity,
+                            )
+                        )
 
         # Step 1: generate L0 abstract + L1 summary when a Summarizer is configured.
         if self.summarizer is not None:
@@ -679,7 +697,9 @@ class ContextSeek:
         """
         return default_tool_specs()
 
-    def forget(self, ref: str, *, scope: str, reason: str, propagate: bool = True) -> None:
+    def forget(
+        self, ref: str, *, scope: str, reason: str, propagate: bool = True
+    ) -> None:
         """Soft-delete a ContextItem by reference.
 
         The item is not physically removed — instead it is marked as
@@ -733,7 +753,9 @@ class ContextSeek:
 
         self._emit_audit(action="forget", scope=scope, detail=detail)
 
-    def delete(self, ref: str, *, scope: str, reason: str, propagate: bool = True) -> None:
+    def delete(
+        self, ref: str, *, scope: str, reason: str, propagate: bool = True
+    ) -> None:
         """Permanently remove a ContextItem from backing storage.
 
         Unlike :meth:`forget`, the payload is removed via the adapter's
@@ -1062,11 +1084,7 @@ class ContextSeek:
             if score <= -0.5:
                 item.importance = max(0.1, item.importance * 0.8)
 
-        if (
-            self._llm_feedback_enabled
-            and self.llm is not None
-            and reason.strip()
-        ):
+        if self._llm_feedback_enabled and self.llm is not None and reason.strip():
             self._apply_llm_feedback_reason(item, reason)
 
         # Persist
@@ -1331,8 +1349,10 @@ class ContextSeek:
 
         if skill_type is not None:
             candidates = [
-                c for c in candidates
-                if isinstance(c.content, dict) and c.content.get("skill_type") == skill_type
+                c
+                for c in candidates
+                if isinstance(c.content, dict)
+                and c.content.get("skill_type") == skill_type
             ]
 
         return candidates
@@ -1366,8 +1386,10 @@ class ContextSeek:
         exporter = SkillExporter()
         skill_items = self.skills(scope, query=query, k=k)
         tool_items = [
-            s for s in skill_items
-            if isinstance(s.content, dict) and s.content.get("skill_type") in ("tool", "mcp")
+            s
+            for s in skill_items
+            if isinstance(s.content, dict)
+            and s.content.get("skill_type") in ("tool", "mcp")
         ]
 
         if fmt == "openai":
@@ -1434,7 +1456,9 @@ class ContextSeek:
         engine = DreamEngine(
             strategy=dream_strategy,
             embedder=self.embedder,
-            llm=self._dream_llm_call if self._dream_llm_enabled and self.llm is not None else None,
+            llm=self._dream_llm_call
+            if self._dream_llm_enabled and self.llm is not None
+            else None,
             prompt_templates=self.llm_prompts,
         )
 
@@ -1458,7 +1482,9 @@ class ContextSeek:
             detail={
                 "dry_run": dry_run,
                 "consolidation_items": len(report.consolidation.items),
-                "divergence_items": len(report.divergence.items) if report.divergence else 0,
+                "divergence_items": len(report.divergence.items)
+                if report.divergence
+                else 0,
                 "total": report.total_dream_items,
             },
         )
@@ -1618,7 +1644,11 @@ class ContextSeek:
         """
         from contextseek.config.settings import ContextSeekSettings
         from contextseek.config.settings import to_strategy_config
-        from contextseek.config.factory import build_embedder, build_llm, build_summarizer
+        from contextseek.config.factory import (
+            build_embedder,
+            build_llm,
+            build_summarizer,
+        )
 
         if settings is None:
             settings = ContextSeekSettings()
@@ -1660,18 +1690,21 @@ class ContextSeek:
         )
 
         llm_rerank_enabled = (
-            shared_llm is not None
-            and settings.retrieval.reranker_mode.lower() == "llm"
+            shared_llm is not None and settings.retrieval.reranker_mode.lower() == "llm"
         )
         llm_rerank_top_n = max(1, int(settings.retrieval.llm_rerank_top_n))
-        llm_merge_enabled = bool(shared_llm is not None and settings.evolution.llm_merge_enabled)
+        llm_merge_enabled = bool(
+            shared_llm is not None and settings.evolution.llm_merge_enabled
+        )
         llm_conflict_check_enabled = bool(
             shared_llm is not None and settings.evolution.llm_conflict_check_enabled
         )
         llm_stage_infer_enabled = bool(
             shared_llm is not None and settings.evolution.llm_stage_infer_enabled
         )
-        llm_distill_enabled = bool(shared_llm is not None and settings.evolution.llm_distill_enabled)
+        llm_distill_enabled = bool(
+            shared_llm is not None and settings.evolution.llm_distill_enabled
+        )
         llm_feedback_enabled = bool(
             shared_llm is not None and settings.evolution.llm_feedback_enabled
         )
@@ -1692,15 +1725,18 @@ class ContextSeek:
                 strategy=strategy.evolution,
                 merge_synthesize_fn=(
                     cls._static_merge_synthesis_prompt(shared_llm, llm_prompts)
-                    if llm_merge_enabled else None
+                    if llm_merge_enabled
+                    else None
                 ),
                 distill_decide_fn=(
                     cls._static_distill_candidate_prompt(shared_llm, llm_prompts)
-                    if llm_distill_enabled else None
+                    if llm_distill_enabled
+                    else None
                 ),
                 distill_render_fn=(
                     cls._static_distill_render_prompt(shared_llm, llm_prompts)
-                    if llm_distill_enabled else None
+                    if llm_distill_enabled
+                    else None
                 ),
             )
 
@@ -1767,7 +1803,9 @@ class ContextSeek:
     def _dream_llm_call(self, prompt: str) -> str:
         return self._invoke_llm_text(prompt)
 
-    def _llm_conflict_judge(self, new_text: str, existing_text: str, overlap: float) -> ConflictType | None:
+    def _llm_conflict_judge(
+        self, new_text: str, existing_text: str, overlap: float
+    ) -> ConflictType | None:
         payload = self._invoke_llm_json(
             conflict_judge_prompt(
                 new_text=new_text,
@@ -1906,7 +1944,9 @@ class ContextSeek:
 
         return RetrievalStrategy()
 
-    def _filter_readable_hits(self, hits: list[SearchHit], *, scope: str) -> list[SearchHit]:
+    def _filter_readable_hits(
+        self, hits: list[SearchHit], *, scope: str
+    ) -> list[SearchHit]:
         """Apply read-side ACL after retrieval as a last isolation guard."""
         if self.strategy is None or not self.strategy.write.acl_enabled:
             return hits
@@ -1962,7 +2002,10 @@ class ContextSeek:
 
     def _propagate_invalidation(self, deleted_item: ContextItem, scope: str):
         """Run invalidation propagation after a soft-delete."""
-        from contextseek.domain.invalidation import InvalidationResult, propagate_invalidation
+        from contextseek.domain.invalidation import (
+            InvalidationResult,
+            propagate_invalidation,
+        )
 
         # Cache all scope items for the find_dependents scan
         all_items = self._list_items(scope, include_deleted=False)

@@ -48,7 +48,9 @@ class SeekVFSStorageAdapter(VectorSearchMixin, SeekVFSAdapter):
         return _EXT_SCHEME + inner_path.removeprefix(self._inner_scheme)
 
     def write(self, ref: str, payload: dict[str, Any]) -> None:
-        data = json.dumps(payload, ensure_ascii=False, default=_json_default).encode("utf-8")
+        data = json.dumps(payload, ensure_ascii=False, default=_json_default).encode(
+            "utf-8"
+        )
         self._vfs.write(self._to_inner(ref), data)
 
     def read(self, ref: str) -> dict[str, Any] | None:

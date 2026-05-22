@@ -39,4 +39,3 @@ def _load_dict(text: str) -> dict[str, Any] | None:
     if isinstance(parsed, dict):
         return parsed
     return None
-

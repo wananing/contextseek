@@ -15,7 +15,9 @@ from contextseek.domain.provenance import Provenance, SourceType
 from contextseek.domain.stages import Stage, Stability
 
 # Keywords that signal procedure-like content in tags or extracted text.
-_PROCEDURE_KEYWORDS = frozenset({"procedure", "executable", "step", "steps", "workflow", "guide", "how-to"})
+_PROCEDURE_KEYWORDS = frozenset(
+    {"procedure", "executable", "step", "steps", "workflow", "guide", "how-to"}
+)
 
 
 def _format_as_markdown(item: ContextItem) -> str:
@@ -95,7 +97,8 @@ class SkillDistiller:
     def identify_candidates(self, items: list[ContextItem]) -> list[ContextItem]:
         """Find knowledge items eligible for skill distillation."""
         candidates = [
-            it for it in items
+            it
+            for it in items
             if it.stage == Stage.knowledge
             and not it.is_deleted
             and it.searchable
@@ -149,8 +152,15 @@ class SkillDistiller:
                 pass
 
         # Preserve procedure-related source tags; drop internal bookkeeping tags.
-        _skip = {"auto_extracted", "llm_summary", "near_duplicate", "has_contradiction",
-                 "needs_review", "needs_reverification", "evolution_candidate"}
+        _skip = {
+            "auto_extracted",
+            "llm_summary",
+            "near_duplicate",
+            "has_contradiction",
+            "needs_review",
+            "needs_reverification",
+            "evolution_candidate",
+        }
         inherited_tags = [t for t in item.tags if t not in _skip]
 
         skill_content = {

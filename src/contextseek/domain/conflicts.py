@@ -17,9 +17,9 @@ from contextseek.domain.context_item import ContextItem
 class ConflictType(str, Enum):
     """Classification of detected conflicts."""
 
-    duplicate = "duplicate"           # Same hash — exact content match
-    near_duplicate = "near_duplicate" # Very similar content (high overlap)
-    contradiction = "contradiction"   # Conflicting assertion (refuted_by candidate)
+    duplicate = "duplicate"  # Same hash — exact content match
+    near_duplicate = "near_duplicate"  # Very similar content (high overlap)
+    contradiction = "contradiction"  # Conflicting assertion (refuted_by candidate)
 
 
 @dataclass(frozen=True)
@@ -29,8 +29,8 @@ class WriteConflict:
     conflict_type: ConflictType
     existing_item_id: str
     existing_content_preview: str
-    similarity: float               # 0.0–1.0
-    suggestion: str                 # Human-readable resolution hint
+    similarity: float  # 0.0–1.0
+    suggestion: str  # Human-readable resolution hint
 
 
 @dataclass(frozen=True)
@@ -46,7 +46,9 @@ class ConflictCheckResult:
 
     @property
     def has_contradictions(self) -> bool:
-        return any(c.conflict_type == ConflictType.contradiction for c in self.conflicts)
+        return any(
+            c.conflict_type == ConflictType.contradiction for c in self.conflicts
+        )
 
 
 def detect_conflicts(
@@ -87,13 +89,15 @@ def detect_conflicts(
 
         # 1. Exact duplicate by hash
         if new_item.hash == existing.hash and new_item.scope == existing.scope:
-            conflicts.append(WriteConflict(
-                conflict_type=ConflictType.duplicate,
-                existing_item_id=existing.id,
-                existing_content_preview=_preview(existing.content_text),
-                similarity=1.0,
-                suggestion="Exact duplicate exists. Consider using feedback() to reinforce instead.",
-            ))
+            conflicts.append(
+                WriteConflict(
+                    conflict_type=ConflictType.duplicate,
+                    existing_item_id=existing.id,
+                    existing_content_preview=_preview(existing.content_text),
+                    similarity=1.0,
+                    suggestion="Exact duplicate exists. Consider using feedback() to reinforce instead.",
+                )
+            )
             continue
 
         # 2. Near-duplicate by token overlap
@@ -104,16 +108,18 @@ def detect_conflicts(
         if new_tokens and existing_tokens:
             overlap = _jaccard_similarity(new_tokens, existing_tokens)
             if overlap >= near_duplicate_threshold:
-                conflicts.append(WriteConflict(
-                    conflict_type=ConflictType.near_duplicate,
-                    existing_item_id=existing.id,
-                    existing_content_preview=_preview(existing.content_text),
-                    similarity=round(overlap, 4),
-                    suggestion=(
-                        "Very similar item exists. "
-                        "Consider merging via compact() or adding a supersedes link."
-                    ),
-                ))
+                conflicts.append(
+                    WriteConflict(
+                        conflict_type=ConflictType.near_duplicate,
+                        existing_item_id=existing.id,
+                        existing_content_preview=_preview(existing.content_text),
+                        similarity=round(overlap, 4),
+                        suggestion=(
+                            "Very similar item exists. "
+                            "Consider merging via compact() or adding a supersedes link."
+                        ),
+                    )
+                )
                 continue
 
         # 2.5 Semantic conflict classification by optional LLM judge.
@@ -123,41 +129,49 @@ def detect_conflicts(
             and llm_min_similarity <= overlap <= llm_max_similarity
         ):
             try:
-                judged = llm_judge(new_item.content_text, existing.content_text, overlap)
+                judged = llm_judge(
+                    new_item.content_text, existing.content_text, overlap
+                )
             except Exception:
                 judged = None
             if judged == ConflictType.near_duplicate:
-                conflicts.append(WriteConflict(
-                    conflict_type=ConflictType.near_duplicate,
-                    existing_item_id=existing.id,
-                    existing_content_preview=_preview(existing.content_text),
-                    similarity=round(overlap, 4),
-                    suggestion="LLM judged as near-duplicate. Consider merging via compact().",
-                ))
+                conflicts.append(
+                    WriteConflict(
+                        conflict_type=ConflictType.near_duplicate,
+                        existing_item_id=existing.id,
+                        existing_content_preview=_preview(existing.content_text),
+                        similarity=round(overlap, 4),
+                        suggestion="LLM judged as near-duplicate. Consider merging via compact().",
+                    )
+                )
                 continue
             if judged == ConflictType.contradiction:
-                conflicts.append(WriteConflict(
-                    conflict_type=ConflictType.contradiction,
-                    existing_item_id=existing.id,
-                    existing_content_preview=_preview(existing.content_text),
-                    similarity=round(overlap, 4),
-                    suggestion="LLM judged as contradiction. Consider refuted_by or supersedes links.",
-                ))
+                conflicts.append(
+                    WriteConflict(
+                        conflict_type=ConflictType.contradiction,
+                        existing_item_id=existing.id,
+                        existing_content_preview=_preview(existing.content_text),
+                        similarity=round(overlap, 4),
+                        suggestion="LLM judged as contradiction. Consider refuted_by or supersedes links.",
+                    )
+                )
                 continue
 
         # 3. Contradiction detection (simple heuristic: negation patterns)
         if _appears_contradictory(new_text, existing_text):
             similarity = overlap if new_tokens and existing_tokens else 0.0
-            conflicts.append(WriteConflict(
-                conflict_type=ConflictType.contradiction,
-                existing_item_id=existing.id,
-                existing_content_preview=_preview(existing.content_text),
-                similarity=round(similarity, 4),
-                suggestion=(
-                    "Potential contradiction detected. "
-                    "Consider adding a refuted_by link or supersedes link."
-                ),
-            ))
+            conflicts.append(
+                WriteConflict(
+                    conflict_type=ConflictType.contradiction,
+                    existing_item_id=existing.id,
+                    existing_content_preview=_preview(existing.content_text),
+                    similarity=round(similarity, 4),
+                    suggestion=(
+                        "Potential contradiction detected. "
+                        "Consider adding a refuted_by link or supersedes link."
+                    ),
+                )
+            )
 
     return ConflictCheckResult(
         has_conflicts=len(conflicts) > 0,
@@ -169,16 +183,37 @@ def detect_conflicts(
 # Helpers
 # ---------------------------------------------------------------------------
 
-_NEGATION_MARKERS = frozenset({
-    "not", "never", "don't", "doesn't", "shouldn't", "cannot", "can't",
-    "won't", "isn't", "aren't", "wasn't", "weren't", "no longer",
-    "不", "不要", "不能", "不是", "不应", "无需", "禁止", "不再",
-})
+_NEGATION_MARKERS = frozenset(
+    {
+        "not",
+        "never",
+        "don't",
+        "doesn't",
+        "shouldn't",
+        "cannot",
+        "can't",
+        "won't",
+        "isn't",
+        "aren't",
+        "wasn't",
+        "weren't",
+        "no longer",
+        "不",
+        "不要",
+        "不能",
+        "不是",
+        "不应",
+        "无需",
+        "禁止",
+        "不再",
+    }
+)
 
 
 def _tokenize(text: str) -> set[str]:
     """Simple whitespace + punctuation tokenizer."""
     import re
+
     return set(re.findall(r"[\w\u4e00-\u9fff]+", text.lower()))
 
 
@@ -215,4 +250,4 @@ def _preview(text: str, max_len: int = 80) -> str:
     """Truncate text for display."""
     if len(text) <= max_len:
         return text
-    return text[:max_len - 3] + "..."
+    return text[: max_len - 3] + "..."

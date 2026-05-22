@@ -94,16 +94,16 @@ def propagate_invalidation(
             )
 
             # Recompute confidence excluding the deleted source
-            new_conf = _recompute_without_source(
-                dependent, current_id, resolve_item
-            )
+            new_conf = _recompute_without_source(dependent, current_id, resolve_item)
 
             if new_conf < old_conf:
-                degraded.append(DegradedItem(
-                    item_id=dependent.id,
-                    old_confidence=round(old_conf, 6),
-                    new_confidence=round(new_conf, 6),
-                ))
+                degraded.append(
+                    DegradedItem(
+                        item_id=dependent.id,
+                        old_confidence=round(old_conf, 6),
+                        new_confidence=round(new_conf, 6),
+                    )
+                )
 
                 if new_conf < reverification_threshold:
                     needs_reverification.append(dependent.id)
@@ -168,7 +168,7 @@ def _recompute_without_source(
     if positive_contributions:
         product = 1.0
         for c in positive_contributions:
-            product *= (1.0 - min(c, 1.0))
+            product *= 1.0 - min(c, 1.0)
         c_positive = 1.0 - product
     else:
         c_positive = item.provenance.confidence

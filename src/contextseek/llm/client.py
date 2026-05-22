@@ -39,4 +39,3 @@ def invoke_text(llm: Any, prompt: str) -> str:
 def invoke_json(llm: Any, prompt: str) -> dict[str, Any]:
     """Invoke a chat model and parse a JSON object from the output."""
     return extract_json_object(invoke_text(llm, prompt))
-

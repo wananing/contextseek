@@ -3,7 +3,10 @@
 from contextseek.domain.context_item import ContextItem, _generate_id, _utc_now
 from contextseek.domain.links import Link, LinkType
 from contextseek.domain.provenance import Provenance, SourceType
-from contextseek.domain.serialization import deserialize_context_item, serialize_context_item
+from contextseek.domain.serialization import (
+    deserialize_context_item,
+    serialize_context_item,
+)
 from contextseek.domain.stages import Stage
 
 

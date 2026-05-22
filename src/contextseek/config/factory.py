@@ -10,7 +10,11 @@ from __future__ import annotations
 import importlib
 from typing import Any, Callable
 
-from contextseek.config.settings import EmbeddingSettings, LLMSettings, SummarizerSettings
+from contextseek.config.settings import (
+    EmbeddingSettings,
+    LLMSettings,
+    SummarizerSettings,
+)
 
 
 def _import_class(class_path: str) -> type:

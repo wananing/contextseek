@@ -52,7 +52,9 @@ def _langchain_stored_items(client: Any, scope: str, k: int) -> list[Any]:
     conversation lines are not ranked out by unrelated semantic hits.
     """
     ordered = client.items(scope=scope)
-    tagged = [it for it in ordered if _LANGCHAIN_TAG_FILTER.issubset(set(it.tags or []))]
+    tagged = [
+        it for it in ordered if _LANGCHAIN_TAG_FILTER.issubset(set(it.tags or []))
+    ]
     return tagged[-k:] if k else tagged
 
 
@@ -109,7 +111,11 @@ if LANGCHAIN_MEMORY_AVAILABLE:
             return {self.memory_key: "\n".join(items)}
 
         def save_context(
-            self, inputs: dict[str, Any], outputs: dict[str, Any], *, source: str = "langchain"
+            self,
+            inputs: dict[str, Any],
+            outputs: dict[str, Any],
+            *,
+            source: str = "langchain",
         ) -> "ContextItem":
             """Persist latest interaction and return the output ContextItem."""
             self._write_message(
@@ -123,7 +129,9 @@ if LANGCHAIN_MEMORY_AVAILABLE:
             """Clear all langchain messages in this scope via forget()."""
             for item in _all_langchain_stored_items(self.client, self.scope):
                 ref = self.client.resolver.ref_for(self.scope, item.id)
-                self.client.forget(ref, scope=self.scope, reason="langchain memory clear")
+                self.client.forget(
+                    ref, scope=self.scope, reason="langchain memory clear"
+                )
 
         def _write_message(
             self, content: str, *, message_type: str, source: str = "langchain"
@@ -181,7 +189,11 @@ else:
             return {self.memory_key: "\n".join(items)}
 
         def save_context(
-            self, inputs: dict[str, Any], outputs: dict[str, Any], *, source: str = "langchain"
+            self,
+            inputs: dict[str, Any],
+            outputs: dict[str, Any],
+            *,
+            source: str = "langchain",
         ) -> "ContextItem":
             self._write_message(
                 str(inputs.get(self.input_key, "")), message_type="human", source=source
@@ -193,7 +205,9 @@ else:
         def clear(self) -> None:
             for item in _all_langchain_stored_items(self.client, self.scope):
                 ref = self.client.resolver.ref_for(self.scope, item.id)
-                self.client.forget(ref, scope=self.scope, reason="langchain memory clear")
+                self.client.forget(
+                    ref, scope=self.scope, reason="langchain memory clear"
+                )
 
         def _write_message(
             self, content: str, *, message_type: str, source: str = "langchain"
@@ -212,7 +226,10 @@ else:
 
         @classmethod
         def validate_environment(cls) -> tuple[bool, str | None]:
-            return False, "langchain-core is required for native chat history integration."
+            return (
+                False,
+                "langchain-core is required for native chat history integration.",
+            )
 
         @classmethod
         def from_client(

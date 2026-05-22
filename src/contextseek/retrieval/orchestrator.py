@@ -115,15 +115,12 @@ class RetrievalOrchestrator:
             raw_hits = [h for h in raw_hits if not h.get("deleted_at")]
 
         if stage is not None:
-            raw_hits = [
-                h for h in raw_hits if h.get("stage") == stage.value
-            ]
+            raw_hits = [h for h in raw_hits if h.get("stage") == stage.value]
 
         if tags:
             tag_set = set(tags)
             raw_hits = [
-                h for h in raw_hits
-                if tag_set.issubset(set(h.get("tags") or []))
+                h for h in raw_hits if tag_set.issubset(set(h.get("tags") or []))
             ]
 
         recall_elapsed_ms = (perf_counter() - recall_start) * 1000.0
@@ -148,7 +145,9 @@ class RetrievalOrchestrator:
                 merged[dedupe_key] = item
 
         # ─── Rerank ───────────────────────────────────────────────
-        reranked = reranker.rerank(list(merged.values()), query=query, strategy=strategy)
+        reranked = reranker.rerank(
+            list(merged.values()), query=query, strategy=strategy
+        )
         limited = reranked[:k]
 
         # ─── Convert to SearchHit ─────────────────────────────────
@@ -189,6 +188,7 @@ class RetrievalOrchestrator:
         if with_stats:
             return hits, stats
         return hits
+
 
 def _build_provenance_summary(item: ContextItem) -> str:
     """Build a human-readable one-line provenance description."""

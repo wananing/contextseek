@@ -74,10 +74,16 @@ def deserialize_context_item(payload: dict[str, Any]) -> ContextItem:
         links=links,
         effective_confidence=payload.get("effective_confidence"),
         created_at=_str_to_dt(payload["created_at"]),
-        updated_at=_str_to_dt(payload["updated_at"]) if payload.get("updated_at") else None,
-        last_accessed_at=_str_to_dt(payload["last_accessed_at"]) if payload.get("last_accessed_at") else None,
+        updated_at=_str_to_dt(payload["updated_at"])
+        if payload.get("updated_at")
+        else None,
+        last_accessed_at=_str_to_dt(payload["last_accessed_at"])
+        if payload.get("last_accessed_at")
+        else None,
         superseded_by=payload.get("superseded_by"),
-        deleted_at=_str_to_dt(payload["deleted_at"]) if payload.get("deleted_at") else None,
+        deleted_at=_str_to_dt(payload["deleted_at"])
+        if payload.get("deleted_at")
+        else None,
         deleted_reason=payload.get("deleted_reason"),
     )
     return item

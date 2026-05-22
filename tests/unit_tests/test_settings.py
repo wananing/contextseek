@@ -94,10 +94,7 @@ class TestContextSeekSettings:
     def test_env_file_loading(self, tmp_path, monkeypatch):
         """Values from a .env-shaped file apply when exported into the process env."""
         env_file = tmp_path / ".env"
-        env_file.write_text(
-            "STORAGE_BACKEND=file\n"
-            "STORAGE_PATH=/from/env/file\n"
-        )
+        env_file.write_text("STORAGE_BACKEND=file\nSTORAGE_PATH=/from/env/file\n")
         for line in env_file.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if not line or line.startswith("#") or "=" not in line:
@@ -178,18 +175,21 @@ class TestFactory:
             def __call__(self, text: str) -> list[float]:
                 return self._embeddings.embed_query(text)
 
-        with patch(
-            "contextseek.config.factory._import_class", return_value=mock_cls
-        ), patch(
-            "contextseek.embedders.langchain_embedder.LangChainEmbedder",
-            FakeLangChainEmbedder,
+        with (
+            patch("contextseek.config.factory._import_class", return_value=mock_cls),
+            patch(
+                "contextseek.embedders.langchain_embedder.LangChainEmbedder",
+                FakeLangChainEmbedder,
+            ),
         ):
-            embedder = build_embedder(EmbeddingSettings(
-                provider="langchain",
-                class_path="some_pkg.SomeEmbeddings",
-                model="test-model",
-                dims=768,
-            ))
+            embedder = build_embedder(
+                EmbeddingSettings(
+                    provider="langchain",
+                    class_path="some_pkg.SomeEmbeddings",
+                    model="test-model",
+                    dims=768,
+                )
+            )
 
         assert embedder is not None
         mock_cls.assert_called_once_with(model="test-model")
@@ -209,15 +209,15 @@ class TestFactory:
         mock_llm = MagicMock()
         mock_cls = MagicMock(return_value=mock_llm)
 
-        with patch(
-            "contextseek.config.factory._import_class", return_value=mock_cls
-        ):
-            llm = build_llm(LLMSettings(
-                provider="langchain",
-                class_path="some_pkg.SomeLLM",
-                model="gpt-4o-mini",
-                kwargs={"temperature": 0.0},
-            ))
+        with patch("contextseek.config.factory._import_class", return_value=mock_cls):
+            llm = build_llm(
+                LLMSettings(
+                    provider="langchain",
+                    class_path="some_pkg.SomeLLM",
+                    model="gpt-4o-mini",
+                    kwargs={"temperature": 0.0},
+                )
+            )
 
         assert llm is mock_llm
         mock_cls.assert_called_once_with(temperature=0.0, model="gpt-4o-mini")

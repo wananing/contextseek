@@ -29,10 +29,12 @@ class TraceExportRecord:
         messages.append({"role": "user", "content": self.input})
         if self.tool_calls:
             for tc in self.tool_calls:
-                messages.append({
-                    "role": "assistant",
-                    "content": f"[tool_call] {json.dumps(tc, ensure_ascii=False)}",
-                })
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": f"[tool_call] {json.dumps(tc, ensure_ascii=False)}",
+                    }
+                )
         messages.append({"role": "assistant", "content": self.output})
         return {"messages": messages, "metadata": self.metadata}
 

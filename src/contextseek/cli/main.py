@@ -7,7 +7,10 @@ import json
 from collections.abc import Sequence
 
 from contextseek.client.contextseek import ContextSeek
-from contextseek.domain.serialization import deserialize_context_item, serialize_context_item
+from contextseek.domain.serialization import (
+    deserialize_context_item,
+    serialize_context_item,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -90,56 +93,88 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("metrics", help="print prometheus metrics")
 
     # dream
-    dream_parser = subparsers.add_parser("dream", help="trigger dream cycle (consolidation + divergence)")
+    dream_parser = subparsers.add_parser(
+        "dream", help="trigger dream cycle (consolidation + divergence)"
+    )
     dream_parser.add_argument("--scope", required=True)
     dream_parser.add_argument("--dry-run", action="store_true")
 
     # feedback
-    feedback_parser = subparsers.add_parser("feedback", help="apply relevance feedback to an item")
+    feedback_parser = subparsers.add_parser(
+        "feedback", help="apply relevance feedback to an item"
+    )
     feedback_parser.add_argument("--scope", required=True)
     feedback_parser.add_argument("--item-id", required=True)
-    feedback_parser.add_argument("--score", type=float, required=True, help="feedback score delta (-1.0 to 1.0)")
+    feedback_parser.add_argument(
+        "--score", type=float, required=True, help="feedback score delta (-1.0 to 1.0)"
+    )
     feedback_parser.add_argument("--reason", default="")
 
     # upstream
-    upstream_parser = subparsers.add_parser("upstream", help="walk derived_from/supported_by links to find upstream items")
+    upstream_parser = subparsers.add_parser(
+        "upstream", help="walk derived_from/supported_by links to find upstream items"
+    )
     upstream_parser.add_argument("--scope", required=True)
     upstream_parser.add_argument("--item-id", required=True)
 
     # evidence-chain
-    ec_parser = subparsers.add_parser("evidence-chain", help="compute full evidence chain DAG for an item")
+    ec_parser = subparsers.add_parser(
+        "evidence-chain", help="compute full evidence chain DAG for an item"
+    )
     ec_parser.add_argument("--scope", required=True)
     ec_parser.add_argument("--item-id", required=True)
     ec_parser.add_argument("--max-depth", type=int, default=10)
 
     # chain-confidence
-    cc_parser = subparsers.add_parser("chain-confidence", help="quick propagated confidence lookup for an item")
+    cc_parser = subparsers.add_parser(
+        "chain-confidence", help="quick propagated confidence lookup for an item"
+    )
     cc_parser.add_argument("--scope", required=True)
     cc_parser.add_argument("--item-id", required=True)
 
     # skill-tools
-    st_parser = subparsers.add_parser("skill-tools", help="export tool/mcp skills as LLM tool definitions")
+    st_parser = subparsers.add_parser(
+        "skill-tools", help="export tool/mcp skills as LLM tool definitions"
+    )
     st_parser.add_argument("--scope", required=True)
-    st_parser.add_argument("--fmt", choices=["openai", "anthropic", "mcp"], default="openai")
-    st_parser.add_argument("--query", default=None, help="optional semantic search query")
+    st_parser.add_argument(
+        "--fmt", choices=["openai", "anthropic", "mcp"], default="openai"
+    )
+    st_parser.add_argument(
+        "--query", default=None, help="optional semantic search query"
+    )
     st_parser.add_argument("--k", type=int, default=20)
 
     # skill-context
-    sc_parser = subparsers.add_parser("skill-context", help="render prompt skills as a system prompt block")
+    sc_parser = subparsers.add_parser(
+        "skill-context", help="render prompt skills as a system prompt block"
+    )
     sc_parser.add_argument("--scope", required=True)
-    sc_parser.add_argument("--query", default=None, help="optional semantic search query")
+    sc_parser.add_argument(
+        "--query", default=None, help="optional semantic search query"
+    )
     sc_parser.add_argument("--k", type=int, default=5)
 
     # skill-import
-    si_parser = subparsers.add_parser("skill-import", help="import skills from Hermes, OpenAI, or MCP format")
+    si_parser = subparsers.add_parser(
+        "skill-import", help="import skills from Hermes, OpenAI, or MCP format"
+    )
     si_parser.add_argument("--scope", required=True)
-    si_parser.add_argument("--format", choices=["hermes", "openai", "mcp"], required=True)
-    si_parser.add_argument("--path", required=True, help="directory path (hermes) or JSON file path (openai/mcp)")
+    si_parser.add_argument(
+        "--format", choices=["hermes", "openai", "mcp"], required=True
+    )
+    si_parser.add_argument(
+        "--path",
+        required=True,
+        help="directory path (hermes) or JSON file path (openai/mcp)",
+    )
 
     # items
     items_parser = subparsers.add_parser("items", help="list all items in a scope")
     items_parser.add_argument("--scope", required=True)
-    items_parser.add_argument("--stage", default=None, help="filter by stage (raw/extracted/knowledge/skill)")
+    items_parser.add_argument(
+        "--stage", default=None, help="filter by stage (raw/extracted/knowledge/skill)"
+    )
 
     return parser
 
@@ -160,7 +195,9 @@ def run_cli(
             source=args.source,
             tags=tags,
         )
-        print(json.dumps({"id": item.id, "stage": item.stage.value}, ensure_ascii=False))
+        print(
+            json.dumps({"id": item.id, "stage": item.stage.value}, ensure_ascii=False)
+        )
         return 0
 
     if args.command == "retrieve":
@@ -212,11 +249,16 @@ def run_cli(
 
     if args.command == "compact":
         report = ctx.compact(scope=args.scope, dry_run=args.dry_run)
-        print(json.dumps({
-            "merged": report.merged_count,
-            "archived": report.archived_count,
-            "evolved": report.evolved_count,
-        }, ensure_ascii=False))
+        print(
+            json.dumps(
+                {
+                    "merged": report.merged_count,
+                    "archived": report.archived_count,
+                    "evolved": report.evolved_count,
+                },
+                ensure_ascii=False,
+            )
+        )
         return 0
 
     if args.command == "forget":
@@ -246,13 +288,18 @@ def run_cli(
 
     if args.command == "overview":
         report = ctx.overview(scope=args.scope)
-        print(json.dumps({
-            "total_items": report.total_items,
-            "stage_distribution": report.stage_distribution,
-            "pending_extraction": report.pending_extraction,
-            "pending_convergence": report.pending_convergence,
-            "distill_candidates": report.distill_candidates,
-        }, ensure_ascii=False))
+        print(
+            json.dumps(
+                {
+                    "total_items": report.total_items,
+                    "stage_distribution": report.stage_distribution,
+                    "pending_extraction": report.pending_extraction,
+                    "pending_convergence": report.pending_convergence,
+                    "distill_candidates": report.distill_candidates,
+                },
+                ensure_ascii=False,
+            )
+        )
         return 0
 
     if args.command == "tools":
@@ -270,12 +317,19 @@ def run_cli(
 
     if args.command == "dream":
         report = ctx.dream(scope=args.scope, dry_run=args.dry_run)
-        print(json.dumps({
-            "total_dream_items": report.total_dream_items,
-            "consolidation_patterns": report.consolidation.patterns_found,
-            "consolidation_items": len(report.consolidation.items),
-            "divergence_items": len(report.divergence.items) if report.divergence else 0,
-        }, ensure_ascii=False))
+        print(
+            json.dumps(
+                {
+                    "total_dream_items": report.total_dream_items,
+                    "consolidation_patterns": report.consolidation.patterns_found,
+                    "consolidation_items": len(report.consolidation.items),
+                    "divergence_items": len(report.divergence.items)
+                    if report.divergence
+                    else 0,
+                },
+                ensure_ascii=False,
+            )
+        )
         return 0
 
     if args.command == "feedback":
@@ -295,10 +349,12 @@ def run_cli(
             else ctx.resolver.ref_for(args.scope, args.item_id)
         )
         chain = ctx.upstream(ref, scope=args.scope)
-        print(json.dumps(
-            {"items": [serialize_context_item(it) for it in chain]},
-            ensure_ascii=False,
-        ))
+        print(
+            json.dumps(
+                {"items": [serialize_context_item(it) for it in chain]},
+                ensure_ascii=False,
+            )
+        )
         return 0
 
     if args.command == "evidence-chain":
@@ -322,7 +378,9 @@ def run_cli(
         return 0
 
     if args.command == "skill-tools":
-        tools = ctx.skill_tools(args.scope, fmt=args.fmt, query=args.query or None, k=args.k)
+        tools = ctx.skill_tools(
+            args.scope, fmt=args.fmt, query=args.query or None, k=args.k
+        )
         print(json.dumps({"tools": tools}, ensure_ascii=False, indent=2))
         return 0
 
@@ -347,22 +405,31 @@ def run_cli(
         else:  # mcp
             with open(args.path, encoding="utf-8") as f:
                 mcp_data = json.load(f)
-            tools_list = mcp_data if isinstance(mcp_data, list) else mcp_data.get("tools", [])
+            tools_list = (
+                mcp_data if isinstance(mcp_data, list) else mcp_data.get("tools", [])
+            )
             plug = MCPToolImporter(tools_list)
 
         ctx.plug(plug, scope=args.scope)
         skills = ctx.skills(args.scope)
-        print(json.dumps({"imported": len(skills), "scope": args.scope}, ensure_ascii=False))
+        print(
+            json.dumps(
+                {"imported": len(skills), "scope": args.scope}, ensure_ascii=False
+            )
+        )
         return 0
 
     if args.command == "items":
         from contextseek.domain.stages import Stage
+
         stage = Stage(args.stage) if args.stage else None
         result_items = ctx.items(scope=args.scope, stage=stage)
-        print(json.dumps(
-            {"items": [serialize_context_item(it) for it in result_items]},
-            ensure_ascii=False,
-        ))
+        print(
+            json.dumps(
+                {"items": [serialize_context_item(it) for it in result_items]},
+                ensure_ascii=False,
+            )
+        )
         return 0
 
     return 1

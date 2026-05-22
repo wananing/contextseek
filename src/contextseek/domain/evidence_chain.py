@@ -31,12 +31,14 @@ TYPE_FACTOR: dict[LinkType, float] = {
 }
 
 # Link types that propagate positive confidence
-_POSITIVE_TYPES = frozenset({
-    LinkType.derived_from,
-    LinkType.supported_by,
-    LinkType.merged_from,
-    LinkType.distilled_into,
-})
+_POSITIVE_TYPES = frozenset(
+    {
+        LinkType.derived_from,
+        LinkType.supported_by,
+        LinkType.merged_from,
+        LinkType.distilled_into,
+    }
+)
 
 # Link types that reduce confidence
 _NEGATIVE_TYPES = frozenset({LinkType.refuted_by})
@@ -178,7 +180,9 @@ def compute_evidence_chain(
     items: dict[str, ContextItem] = {root_item.id: root_item}
     depths: dict[str, int] = {root_item.id: 0}
     missing_ids: set[str] = set()
-    raw_edges: list[tuple[str, str, LinkType, float]] = []  # (source, target, type, strength)
+    raw_edges: list[
+        tuple[str, str, LinkType, float]
+    ] = []  # (source, target, type, strength)
 
     queue: deque[tuple[str, int]] = deque([(root_item.id, 0)])
     visited: set[str] = {root_item.id}
@@ -306,7 +310,7 @@ def compute_evidence_chain(
             if positive_contributions:
                 product = 1.0
                 for c in positive_contributions:
-                    product *= (1.0 - min(c, 1.0))
+                    product *= 1.0 - min(c, 1.0)
                 c_positive = 1.0 - product
             else:
                 c_positive = item.provenance.confidence
@@ -324,35 +328,43 @@ def compute_evidence_chain(
         contribution = parent_conf * strength * abs(factor)
         if rel in _NEGATIVE_TYPES:
             contribution = -contribution
-        chain_edges.append(ChainEdge(
-            source_id=source_id,
-            target_id=target_id,
-            relation=rel,
-            strength=strength,
-            contribution=round(contribution, 6),
-        ))
+        chain_edges.append(
+            ChainEdge(
+                source_id=source_id,
+                target_id=target_id,
+                relation=rel,
+                strength=strength,
+                contribution=round(contribution, 6),
+            )
+        )
 
     # Phase 5: Build nodes
     chain_nodes: list[ChainNode] = []
     for nid, item in items.items():
-        chain_nodes.append(ChainNode(
-            item_id=nid,
-            intrinsic_confidence=item.provenance.confidence,
-            effective_confidence=round(effective.get(nid, item.provenance.confidence), 6),
-            stage=item.stage,
-            depth=depths.get(nid, 0),
-            is_root=nid not in has_parents,
-        ))
+        chain_nodes.append(
+            ChainNode(
+                item_id=nid,
+                intrinsic_confidence=item.provenance.confidence,
+                effective_confidence=round(
+                    effective.get(nid, item.provenance.confidence), 6
+                ),
+                stage=item.stage,
+                depth=depths.get(nid, 0),
+                is_root=nid not in has_parents,
+            )
+        )
     for mid in missing_ids:
-        chain_nodes.append(ChainNode(
-            item_id=mid,
-            intrinsic_confidence=0.0,
-            effective_confidence=0.0,
-            stage=Stage.raw,
-            depth=depths.get(mid, 0),
-            is_root=True,
-            is_missing=True,
-        ))
+        chain_nodes.append(
+            ChainNode(
+                item_id=mid,
+                intrinsic_confidence=0.0,
+                effective_confidence=0.0,
+                stage=Stage.raw,
+                depth=depths.get(mid, 0),
+                is_root=True,
+                is_missing=True,
+            )
+        )
 
     # Phase 6: Critical path — greedy walk from root following max positive contribution
     critical_path = [root_item.id]
@@ -379,15 +391,19 @@ def compute_evidence_chain(
     conflicts: list[ConflictReport] = []
     for edge in chain_edges:
         if edge.relation == LinkType.refuted_by:
-            conflicts.append(ConflictReport(
-                item_id=edge.source_id,
-                refuter_id=edge.target_id,
-                refutation_strength=edge.strength,
-                net_confidence_impact=round(abs(edge.contribution), 6),
-            ))
+            conflicts.append(
+                ConflictReport(
+                    item_id=edge.source_id,
+                    refuter_id=edge.target_id,
+                    refutation_strength=edge.strength,
+                    net_confidence_impact=round(abs(edge.contribution), 6),
+                )
+            )
 
     # Phase 8: Assemble result
-    overall_confidence = round(effective.get(root_item.id, root_item.provenance.confidence), 6)
+    overall_confidence = round(
+        effective.get(root_item.id, root_item.provenance.confidence), 6
+    )
     actual_max_depth = max(depths.values()) if depths else 0
     root_nodes = [n for n in chain_nodes if n.is_root and not n.is_missing]
 

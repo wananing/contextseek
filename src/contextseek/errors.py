@@ -25,7 +25,9 @@ class ContextSeekError(ValueError):
         }
 
 
-def invalid_namespaces(values: list[str], *, reason: str = "invalid") -> ContextSeekError:
+def invalid_namespaces(
+    values: list[str], *, reason: str = "invalid"
+) -> ContextSeekError:
     """Return a consistent namespace validation error."""
     return ContextSeekError(
         code="invalid_namespaces",

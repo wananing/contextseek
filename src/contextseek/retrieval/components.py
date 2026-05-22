@@ -33,7 +33,9 @@ class RecallQuery:
 class RecallRoute(Protocol):
     """Build and execute backend recall routes."""
 
-    def build_queries(self, query: str, strategy: RetrievalStrategy) -> list[RecallQuery]:
+    def build_queries(
+        self, query: str, strategy: RetrievalStrategy
+    ) -> list[RecallQuery]:
         """Return one or more backend queries for a user query."""
 
     def recall(
@@ -63,7 +65,9 @@ class Reranker(Protocol):
 class DefaultRecallRoute:
     """Default phrase + token recall route over the VFS search API."""
 
-    def build_queries(self, query: str, strategy: RetrievalStrategy) -> list[RecallQuery]:
+    def build_queries(
+        self, query: str, strategy: RetrievalStrategy
+    ) -> list[RecallQuery]:
         cleaned = query.strip()
         if not cleaned:
             return []
@@ -102,7 +106,9 @@ class VectorRecallRoute:
     def __init__(self, embedder: Embedder) -> None:
         self._embedder = embedder
 
-    def build_queries(self, query: str, strategy: RetrievalStrategy) -> list[RecallQuery]:
+    def build_queries(
+        self, query: str, strategy: RetrievalStrategy
+    ) -> list[RecallQuery]:
         cleaned = query.strip()
         if not cleaned or "vector" not in set(strategy.recall_routes):
             return []
@@ -139,7 +145,9 @@ class HybridRecallRoute:
         self._text_route = DefaultRecallRoute()
         self._vector_route = VectorRecallRoute(embedder)
 
-    def build_queries(self, query: str, strategy: RetrievalStrategy) -> list[RecallQuery]:
+    def build_queries(
+        self, query: str, strategy: RetrievalStrategy
+    ) -> list[RecallQuery]:
         return self._text_route.build_queries(
             query, strategy
         ) + self._vector_route.build_queries(query, strategy)
@@ -153,8 +161,12 @@ class HybridRecallRoute:
         k: int,
     ) -> list[dict[str, object]]:
         if recall_query.route_name == "vector":
-            return self._vector_route.recall(adapter, prefix=prefix, recall_query=recall_query, k=k)
-        return self._text_route.recall(adapter, prefix=prefix, recall_query=recall_query, k=k)
+            return self._vector_route.recall(
+                adapter, prefix=prefix, recall_query=recall_query, k=k
+            )
+        return self._text_route.recall(
+            adapter, prefix=prefix, recall_query=recall_query, k=k
+        )
 
 
 class HeuristicReranker:
@@ -252,7 +264,7 @@ class LLMReranker:
         pre_ranked = self._inner.rerank(candidates, query=query, strategy=strategy)
         # Limit LLM calls to top_n candidates if configured
         to_score = pre_ranked[: self._top_n] if self._top_n else pre_ranked
-        remainder = pre_ranked[self._top_n:] if self._top_n else []
+        remainder = pre_ranked[self._top_n :] if self._top_n else []
         for item in to_score:
             content = str(item.get("content", ""))
             try:

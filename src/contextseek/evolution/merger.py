@@ -43,10 +43,15 @@ def decay_score(item: ContextItem, *, half_life_days: float = 7.0) -> float:
     """Composite score: recency * importance + access + relevance_boost."""
     now = datetime.now(timezone.utc)
     age_days = (now - item.created_at).total_seconds() / 86400
-    recency = math.exp(-0.693 * age_days / half_life_days) if half_life_days > 0 else 1.0
+    recency = (
+        math.exp(-0.693 * age_days / half_life_days) if half_life_days > 0 else 1.0
+    )
 
     access_boost = min(item.access_count / 20.0, 1.0) * 0.2
-    return max(0.0, item.importance * recency + access_boost + (item.relevance_boost - 1.0) * 0.3)
+    return max(
+        0.0,
+        item.importance * recency + access_boost + (item.relevance_boost - 1.0) * 0.3,
+    )
 
 
 class ConvergenceMerger:
@@ -71,7 +76,9 @@ class ConvergenceMerger:
         self._half_life = half_life_days
         self._synthesize = synthesize_fn
 
-    def merge(self, items: list[ContextItem]) -> tuple[list[ContextItem], list[ContextItem]]:
+    def merge(
+        self, items: list[ContextItem]
+    ) -> tuple[list[ContextItem], list[ContextItem]]:
         """Merge similar extracted items.
 
         Returns:
@@ -80,7 +87,8 @@ class ConvergenceMerger:
         """
         # Only consider extracted, non-deleted, searchable items
         candidates = [
-            it for it in items
+            it
+            for it in items
             if it.stage == Stage.extracted and not it.is_deleted and it.searchable
         ]
         if len(candidates) < self._min_cluster:
@@ -115,7 +123,10 @@ class ConvergenceMerger:
 
         for cluster in clusters:
             # Pick the highest-scoring item as representative
-            cluster.sort(key=lambda x: decay_score(x, half_life_days=self._half_life), reverse=True)
+            cluster.sort(
+                key=lambda x: decay_score(x, half_life_days=self._half_life),
+                reverse=True,
+            )
             representative = cluster[0]
             merged_content = representative.content
             if self._synthesize is not None:
@@ -140,7 +151,10 @@ class ConvergenceMerger:
                 stage=Stage.knowledge,
                 stability=Stability.stable,
                 tags=list(set(tag for it in cluster for tag in it.tags)),
-                links=[Link(target_id=it.id, relation=LinkType.merged_from) for it in cluster],
+                links=[
+                    Link(target_id=it.id, relation=LinkType.merged_from)
+                    for it in cluster
+                ],
                 created_at=_utc_now(),
                 importance=max(it.importance for it in cluster),
             )
