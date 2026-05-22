@@ -16,7 +16,7 @@ This guide is the practical companion to [Core concepts](core-concepts.md). It w
 ```mermaid
 sequenceDiagram
   participant App
-  participant SC as SeekContext
+  participant SC as ContextSeek
   participant Store as Storage
 
   App->>SC: add(content, scope, source)
@@ -41,11 +41,11 @@ sequenceDiagram
 ### Basic write
 
 ```python
-from seekcontext import SeekContext
-from seekcontext.domain.provenance import SourceType
-from seekcontext.domain.stages import Stage
+from contextseek import ContextSeek
+from contextseek.domain.provenance import SourceType
+from contextseek.domain.stages import Stage
 
-ctx = SeekContext.from_settings()
+ctx = ContextSeek.from_settings()
 
 item = ctx.add(
     "Rollback requires draining connections before schema migration.",
@@ -102,7 +102,7 @@ Understanding the pipeline helps debug “why is search slow” or “why no sum
 4. **Conflict check** — Exact duplicates raise `ValueError`. Near-duplicates get tag `near_duplicate`; contradictions get `has_contradiction` and `refuted_by` links.
 5. **Summarizer** — If configured (`SUMMARIZER_PROVIDER=llm` + working `LLM_*`), generates `abstract` (L0) and `summary` (L1).
 6. **Embedder** — If configured, embeds L0 abstract (falls back to full L2 text).
-7. **Persist** — Serialized to storage under `seekcontext://{scope}/{id}`.
+7. **Persist** — Serialized to storage under `contextseek://{scope}/{id}`.
 
 Without summarizer + embedder, items are still searchable via **phrase/term** recall on backends that support substring search (e.g. FileBackend).
 
@@ -174,7 +174,7 @@ response = ctx.retrieve(
 
 For each `retrieve()` call:
 
-1. **Prefix resolve** — `scope` → storage prefix (e.g. `seekcontext://acme/payments/on-call/`).
+1. **Prefix resolve** — `scope` → storage prefix (e.g. `contextseek://acme/payments/on-call/`).
 2. **Recall** — One or more routes from `RETRIEVAL_RECALL_ROUTES`:
    - `phrase` — whole query string
    - `terms` — tokenized terms (supports CJK word chars)
@@ -265,7 +265,7 @@ Do not use `items()` to build prompts at scale; use `retrieve()` with a focused 
 
 ## Exposing capabilities to LLMs: `tools()`
 
-SeekContext ships two tool specs aligned with `ResponseMeta.hint`:
+ContextSeek ships two tool specs aligned with `ResponseMeta.hint`:
 
 ```python
 for spec in ctx.tools():
@@ -291,9 +291,9 @@ Register tools in your agent framework and map tool calls to `ctx.retrieve` / `c
 ## End-to-end example: support bot turn
 
 ```python
-from seekcontext import SeekContext
+from contextseek import ContextSeek
 
-ctx = SeekContext.from_settings()
+ctx = ContextSeek.from_settings()
 scope = "acme/support/user-8812"
 
 # 1. Ingest ticket + KB snippet (could also come from a DataPlug)

@@ -1,6 +1,6 @@
 # Configuration
 
-SeekContext loads settings from **environment variables** and an optional **`.env` file**. No configuration is required for the zero-config path: in-memory storage and keyword-only retrieval.
+ContextSeek loads settings from **environment variables** and an optional **`.env` file**. No configuration is required for the zero-config path: in-memory storage and keyword-only retrieval.
 
 ## How settings are loaded
 
@@ -29,16 +29,16 @@ Nested sections use a **prefix + field name** (case-insensitive):
 ### Constructing in code
 
 ```python
-from seekcontext import SeekContext, SeekContextSettings
-from seekcontext.config.settings import (
+from contextseek import ContextSeek, ContextSeekSettings
+from contextseek.config.settings import (
     StorageSettings,
     EmbeddingSettings,
     LLMSettings,
     RetrievalSettings,
 )
 
-settings = SeekContextSettings(
-    storage=StorageSettings(backend="file", path="/var/lib/seekcontext"),
+settings = ContextSeekSettings(
+    storage=StorageSettings(backend="file", path="/var/lib/contextseek"),
     embedding=EmbeddingSettings(
         provider="langchain",
         class_path="langchain_openai.OpenAIEmbeddings",
@@ -56,10 +56,10 @@ settings = SeekContextSettings(
     ),
 )
 
-ctx = SeekContext.from_settings(settings)
+ctx = ContextSeek.from_settings(settings)
 ```
 
-Code overrides beat env for fields you set explicitly on `SeekContextSettings(...)`.
+Code overrides beat env for fields you set explicitly on `ContextSeekSettings(...)`.
 
 ---
 
@@ -70,14 +70,14 @@ Code overrides beat env for fields you set explicitly on `SeekContextSettings(..
 Nothing required. In-memory store, phrase+term recall, no API keys.
 
 ```python
-ctx = SeekContext.from_settings()
+ctx = ContextSeek.from_settings()
 ```
 
 ### Profile B — Persistent file + keywords
 
 ```env
 STORAGE_BACKEND=file
-STORAGE_PATH=.seekcontext/data
+STORAGE_PATH=.contextseek/data
 ```
 
 Suitable for single-node apps and examples. Retrieval uses substring match on file-backed index.
@@ -86,7 +86,7 @@ Suitable for single-node apps and examples. Retrieval uses substring match on fi
 
 ```env
 STORAGE_BACKEND=file
-STORAGE_PATH=.seekcontext/data
+STORAGE_PATH=.contextseek/data
 
 EMBEDDING_PROVIDER=langchain
 EMBEDDING_CLASS_PATH=langchain_openai.OpenAIEmbeddings
@@ -103,7 +103,7 @@ LLM_MODEL=gpt-4o-mini
 SUMMARIZER_PROVIDER=llm
 ```
 
-Install: `pip install "seekcontext[langchain,openai]"`.
+Install: `pip install "contextseek[langchain,openai]"`.
 
 Enables L0/L1 generation on `add()`, vector recall, optional LLM rerank.
 
@@ -113,7 +113,7 @@ Add observability and evolution as needed:
 
 ```env
 OBSERVABILITY_AUDIT_ENABLED=true
-OBSERVABILITY_AUDIT_PATH=.seekcontext/audit.jsonl
+OBSERVABILITY_AUDIT_PATH=.contextseek/audit.jsonl
 EVOLUTION_ENABLED=true
 RETRIEVAL_RERANKER_MODE=llm
 ```
@@ -129,10 +129,10 @@ See phased LLM flags below before enabling all evolution LLM features at once.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `STORAGE_BACKEND` | `memory` | `memory` or `file` |
-| `STORAGE_PATH` | `.seekcontext/store` | Directory when `backend=file` |
-| `STORAGE_URI_SCHEME` | `seekcontext://` | URI scheme for refs |
+| `STORAGE_PATH` | `.contextseek/store` | Directory when `backend=file` |
+| `STORAGE_URI_SCHEME` | `contextseek://` | URI scheme for refs |
 | `STORAGE_COLD_BACKEND` | (empty) | Optional tiered cold tier |
-| `STORAGE_COLD_PATH` | `.seekcontext/cold` | Cold tier path |
+| `STORAGE_COLD_PATH` | `.contextseek/cold` | Cold tier path |
 
 OceanBase uses additional `OB_*` variables when built via runtime factory / examples — see [Storage backends](../guides/storage.md).
 
@@ -145,7 +145,7 @@ OceanBase uses additional `OB_*` variables when built via runtime factory / exam
 | `EMBEDDING_MODEL` | — | Model name for provider ctor |
 | `EMBEDDING_DIMS` | `0` | Required when provider ≠ `none` |
 
-Provider API keys (`OPENAI_API_KEY`, `DASHSCOPE_API_KEY`, …) are read by LangChain classes, not by SeekContext directly.
+Provider API keys (`OPENAI_API_KEY`, `DASHSCOPE_API_KEY`, …) are read by LangChain classes, not by ContextSeek directly.
 
 ### LLM (`LLM_*`)
 
@@ -219,7 +219,7 @@ See commented blocks in [.env.example](../../../.env.example) for all keys.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OBSERVABILITY_AUDIT_ENABLED` | `false` | JSONL audit log |
-| `OBSERVABILITY_AUDIT_PATH` | `.seekcontext/audit.jsonl` | Audit file path |
+| `OBSERVABILITY_AUDIT_PATH` | `.contextseek/audit.jsonl` | Audit file path |
 | `OBSERVABILITY_METRICS_ENABLED` | `false` | Prometheus text export |
 
 Use `ctx.tag(actor=..., request_id=...)` to enrich audit records — see [Observability](../guides/observability.md).

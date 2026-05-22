@@ -1,6 +1,6 @@
-# Default AppWorld evaluation config for SeekContext.
+# Default AppWorld evaluation config for ContextSeek.
 
-experiment_name: seekcontext_appworld_dev
+experiment_name: contextseek_appworld_dev
 dataset: test_normal
 max_tasks: 20
 resume: true
@@ -12,7 +12,7 @@ appworld:
   python: ${APPWORLD_PYTHON}
 
 agent:
-  type: seekcontext_react
+  type: contextseek_react
   model: gpt-4o
   max_steps: 25
   temperature: 0.0
@@ -27,12 +27,12 @@ agent:
   initial_context_tokens: 1200
   error_context_limit: 3
 
-seekcontext:
+contextseek:
   enabled: true
   scope: appworld/{experiment_name}/{dataset}/global
   storage:
     backend: file
-    path: .seekcontext/appworld
+    path: .contextseek/appworld
   retrieval:
     default_k: 20
     default_budget: 20
@@ -41,7 +41,7 @@ seekcontext:
     extract_min_age_seconds: 0
   observability:
     audit_enabled: true
-    audit_path: .seekcontext/appworld_audit.jsonl
+    audit_path: .contextseek/appworld_audit.jsonl
 
 distill:
   compact_after: true

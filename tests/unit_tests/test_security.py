@@ -1,7 +1,7 @@
 """Tests for security policy."""
 
-from seekcontext.config.strategies import WriteStrategy
-from seekcontext.security.policy import (
+from contextseek.config.strategies import WriteStrategy
+from contextseek.security.policy import (
     apply_write_policy,
     can_access_payload,
     redact_value,

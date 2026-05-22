@@ -1,4 +1,4 @@
-"""Baseline adapter — native tau-bench agent without SeekContext."""
+"""Baseline adapter — native tau-bench agent without ContextSeek."""
 
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ def _count_agent_turns(messages: list[Any]) -> int:
 
 @dataclass
 class BaselineAdapter:
-    """Runs tau-bench tasks with the native agent, no SeekContext integration.
+    """Runs tau-bench tasks with the native agent, no ContextSeek integration.
 
     Uses tau2's standard TextRunConfig → build_orchestrator → run_simulation pipeline.
     """

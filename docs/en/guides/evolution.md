@@ -1,6 +1,6 @@
 # Context Evolution
 
-SeekContext items don't stay static. They mature through a stage pipeline (`raw → extracted → knowledge → skill`) and can be consolidated, synthesized, and distilled over time. This guide covers the four evolution controls: `compact()`, `dream()`, `feedback()`, and `overview()`.
+ContextSeek items don't stay static. They mature through a stage pipeline (`raw → extracted → knowledge → skill`) and can be consolidated, synthesized, and distilled over time. This guide covers the four evolution controls: `compact()`, `dream()`, `feedback()`, and `overview()`.
 
 ---
 
@@ -18,7 +18,7 @@ Every `ContextItem` has a `stage` that reflects its maturity:
 Stage advances automatically through `compact()`. You can also override stage on `add()`:
 
 ```python
-from seekcontext.domain.stages import Stage
+from contextseek.domain.stages import Stage
 
 ctx.add("deploy runbook step 3", scope="acme/sre", source="wiki",
         stage=Stage.knowledge)
@@ -134,7 +134,7 @@ Use `overview()` before running `compact()` to decide if it's worth it, or to mo
 When an item reaches `Stage.skill` it can be executed directly:
 
 ```python
-from seekcontext.domain.stages import Stage
+from contextseek.domain.stages import Stage
 
 skills = ctx.items(scope="acme/bot", stage=Stage.skill)
 for skill in skills:

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """JSONL worker that runs inside the AppWorld Python environment.
 
-This file intentionally imports no SeekContext modules. It is launched by the
-SeekContext evaluation process with the Python interpreter that has AppWorld
+This file intentionally imports no ContextSeek modules. It is launched by the
+ContextSeek evaluation process with the Python interpreter that has AppWorld
 installed, then receives commands over stdin and writes sentinel-prefixed JSON
 responses to stdout.
 """
@@ -52,7 +52,7 @@ def main() -> None:
 
                 world_cm = AppWorld(
                     task_id=request["task_id"],
-                    experiment_name=request.get("experiment_name", "seekcontext_eval"),
+                    experiment_name=request.get("experiment_name", "contextseek_eval"),
                 )
                 world = world_cm.__enter__()
                 _respond(

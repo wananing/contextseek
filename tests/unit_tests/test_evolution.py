@@ -2,14 +2,14 @@
 
 from datetime import datetime, timezone, timedelta
 
-from seekcontext.domain.context_item import ContextItem, _generate_id, _utc_now
-from seekcontext.domain.links import Link, LinkType
-from seekcontext.domain.provenance import Provenance, SourceType
-from seekcontext.domain.stages import Stage, Stability
-from seekcontext.evolution.distiller import SkillDistiller
-from seekcontext.evolution.engine import EvolutionEngine
-from seekcontext.evolution.extractor import HeuristicExtractor
-from seekcontext.evolution.merger import ConvergenceMerger, semantic_similarity, decay_score
+from contextseek.domain.context_item import ContextItem, _generate_id, _utc_now
+from contextseek.domain.links import Link, LinkType
+from contextseek.domain.provenance import Provenance, SourceType
+from contextseek.domain.stages import Stage, Stability
+from contextseek.evolution.distiller import SkillDistiller
+from contextseek.evolution.engine import EvolutionEngine
+from contextseek.evolution.extractor import HeuristicExtractor
+from contextseek.evolution.merger import ConvergenceMerger, semantic_similarity, decay_score
 
 
 def _make_item(content="test", stage=Stage.raw, scope="t/p/s", **kwargs):

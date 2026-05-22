@@ -1,6 +1,6 @@
 # Core concepts
 
-SeekContext is a **context asset layer** for agents: one write path (`add`), one ranked read path (`retrieve`), and optional evolution from raw observations to reusable skills.
+ContextSeek is a **context asset layer** for agents: one write path (`add`), one ranked read path (`retrieve`), and optional evolution from raw observations to reusable skills.
 
 The conceptual documentation is split into three focused pages:
 
@@ -18,7 +18,7 @@ The rest of this page is a condensed reference for readers who want a quick over
 
 ## Design goal: one object, three guarantees
 
-Every record that enters SeekContext should be:
+Every record that enters ContextSeek should be:
 
 | Guarantee | Question it answers | Mechanism |
 |-----------|---------------------|-----------|
@@ -26,7 +26,7 @@ Every record that enters SeekContext should be:
 | **Traceable** | Can we explain why the agent saw this? | Mandatory `provenance`; `links`; audit APIs |
 | **Evolvable** | Can experience compound over time? | `stage` pipeline; `compact()` / `dream()` |
 
-If data has no identifiable source, must never be searched, or is throwaway buffer, keep it outside SeekContext (Redis session cache, raw log files, etc.).
+If data has no identifiable source, must never be searched, or is throwaway buffer, keep it outside ContextSeek (Redis session cache, raw log files, etc.).
 
 ---
 
@@ -35,11 +35,11 @@ If data has no identifiable source, must never be searched, or is throwaway buff
 Memory snippets, KB articles, traces, and distilled skills are all **`ContextItem`** instances. The type does not change—**stage**, **provenance**, and **tags** express semantics.
 
 ```python
-from seekcontext import SeekContext
-from seekcontext.domain.provenance import SourceType
-from seekcontext.domain.stages import Stage, Stability
+from contextseek import ContextSeek
+from contextseek.domain.provenance import SourceType
+from contextseek.domain.stages import Stage, Stability
 
-ctx = SeekContext.from_settings()
+ctx = ContextSeek.from_settings()
 
 item = ctx.add(
     "Always run integration tests before production deploy.",
@@ -148,7 +148,7 @@ raw  →  extracted  →  knowledge  →  skill
 | `knowledge` | Merged facts, validated runbooks | 0.85 |
 | `skill` | Executable playbooks | 1.0 |
 
-**Inference on write:** If you omit `stage`, SeekContext infers from `source_type` and content shape. With `EVOLUTION_LLM_STAGE_INFER_ENABLED=true`, an LLM classifier may override heuristics.
+**Inference on write:** If you omit `stage`, ContextSeek infers from `source_type` and content shape. With `EVOLUTION_LLM_STAGE_INFER_ENABLED=true`, an LLM classifier may override heuristics.
 
 **Evolution:** `compact()` promotes clusters (e.g. many `extracted` → one `knowledge`). `dream()` proposes cross-cluster hypotheses at idle time. Details: [Evolution](evolution.md).
 
@@ -256,7 +256,7 @@ APIs: `upstream()`, `evidence_chain()`, `chain_confidence()` — [Provenance & a
 
 ## Why not eight different “memory types”?
 
-Earlier agent stacks often define separate types (profile, session, KB, trace, skill, …). SeekContext collapses them because:
+Earlier agent stacks often define separate types (profile, session, KB, trace, skill, …). ContextSeek collapses them because:
 
 1. Integrators should not guess types at write time.
 2. The same text may start as `raw` and become `knowledge` after evolution.
@@ -269,7 +269,7 @@ Express intent with **`source_type`**, **`tags`**, and **`stage`**, not with dif
 ## Mental model diagram
 
 ```
- Application                SeekContext client
+ Application                ContextSeek client
  ┌─────────────┐            ┌──────────────────────────┐
  │ Agent loop  │──add()────▶│ ContextItem + storage    │
  │             │◀─retrieve─│ Recall → rerank → L1/L2  │

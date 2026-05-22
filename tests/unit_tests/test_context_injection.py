@@ -3,18 +3,18 @@
 (Replaces former ContextInjectionBuilder tests after the API simplification.)
 """
 
-from seekcontext import (
+from contextseek import (
     ResponseMeta,
     RetrieveResponse,
-    SeekContext,
+    ContextSeek,
     ToolSpec,
 )
-from seekcontext.domain.tools import EXPAND_HINT, default_tool_specs
+from contextseek.domain.tools import EXPAND_HINT, default_tool_specs
 
 
 class TestRetrieveResponse:
     def test_iterable(self):
-        ctx = SeekContext()
+        ctx = ContextSeek()
         ctx.add("hello world", scope="t/p", source="cli")
         ctx.add("alpha beta", scope="t/p", source="cli")
         response = ctx.retrieve("hello", scope="t/p")
@@ -24,14 +24,14 @@ class TestRetrieveResponse:
         assert all(isinstance(i, str) and i for i in ids)
 
     def test_meta_layer_full_when_no_summary(self):
-        ctx = SeekContext()
+        ctx = ContextSeek()
         ctx.add("plain content", scope="t/p", source="cli")
         response = ctx.retrieve("plain", scope="t/p")
         assert response.meta.layer == "full"
         assert response.meta.full_via == "expand"
 
     def test_full_flag_returns_full_layer(self):
-        ctx = SeekContext()
+        ctx = ContextSeek()
         ctx.add("some content", scope="t/p", source="cli")
         response = ctx.retrieve("content", scope="t/p", full=True)
         assert response.meta.layer == "full"
@@ -41,7 +41,7 @@ class TestRetrieveResponse:
 
 class TestExpand:
     def test_expand_returns_full_items_without_scope(self):
-        ctx = SeekContext()
+        ctx = ContextSeek()
         item = ctx.add("expand target", scope="t/p", source="cli")
         response = ctx.retrieve("expand", scope="t/p")
         full_items = ctx.expand(list(response))

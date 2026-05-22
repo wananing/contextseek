@@ -1,8 +1,8 @@
-"""完整链路示例：FileBackend 本地文件后端 + SeekContext。
+"""完整链路示例：FileBackend 本地文件后端 + ContextSeek。
 
 演示：
   1. 用 FileBackend 把每个 ref 落盘成一个本地文件（零外部依赖）
-  2. 通过 SeekContext 写入 ContextItem
+  2. 通过 ContextSeek 写入 ContextItem
   3. 做关键词/子串检索（FileBackend 自带的 search 是朴素子串匹配）
   4. 直接使用 RetrievalOrchestrator 做底层检索（可选）
 
@@ -27,11 +27,11 @@ from typing import Iterator
 import seekvfs
 import shutil
 
-from seekcontext import SeekContext
-from seekcontext.domain.provenance import SourceType
-from seekcontext.retrieval.orchestrator import RetrievalOrchestrator, RetrievalStats
-from seekcontext.routing.resolver import ScopeResolver
-from seekcontext.storage import FileBackend, SeekVFSStorageAdapter
+from contextseek import ContextSeek
+from contextseek.domain.provenance import SourceType
+from contextseek.retrieval.orchestrator import RetrievalOrchestrator, RetrievalStats
+from contextseek.routing.resolver import ScopeResolver
+from contextseek.storage import FileBackend, SeekVFSStorageAdapter
 
 # ============================================================
 # == 配置区 ==
@@ -65,7 +65,7 @@ DEMO_ITEMS: list[tuple[str, str, SourceType, list[str]]] = [
 
 @dataclass
 class FileDemoStack:
-    ctx: SeekContext
+    ctx: ContextSeek
     adapter: SeekVFSStorageAdapter
     orchestrator: RetrievalOrchestrator
     scope: str
@@ -92,10 +92,10 @@ def file_backend_demo_stack(
         shutil.rmtree(root)
     root.mkdir(parents=True, exist_ok=True)
 
-    backend = FileBackend(root_dir=root, scheme="seekcontext://")
-    vfs = seekvfs.VFS({"seekcontext://": {"backend": backend}}, scheme="seekcontext://")
+    backend = FileBackend(root_dir=root, scheme="contextseek://")
+    vfs = seekvfs.VFS({"contextseek://": {"backend": backend}}, scheme="contextseek://")
     adapter = SeekVFSStorageAdapter(vfs)
-    ctx = SeekContext(adapter=adapter)
+    ctx = ContextSeek(adapter=adapter)
     orchestrator = RetrievalOrchestrator(adapter=adapter)
 
     item_ids: list[str] = []

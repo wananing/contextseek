@@ -1,6 +1,6 @@
-# SeekContext documentation (English)
+# ContextSeek documentation (English)
 
-Usage-focused guides for integrating SeekContext into agents and applications.
+Usage-focused guides for integrating ContextSeek into agents and applications.
 
 ## Getting started
 
@@ -40,7 +40,7 @@ Usage-focused guides for integrating SeekContext into agents and applications.
 
 | Doc | Description |
 |-----|-------------|
-| [API reference](reference/api.md) | All `SeekContext` methods, parameters, return types |
+| [API reference](reference/api.md) | All `ContextSeek` methods, parameters, return types |
 | [Settings reference](reference/settings.md) | All environment variables with defaults |
 | [Examples](reference/examples.md) | `examples/` directory index |
 

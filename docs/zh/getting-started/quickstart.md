@@ -9,7 +9,7 @@
 ### 使用 uv（推荐）
 
 ```bash
-cd seekcontext
+cd contextseek
 uv sync
 source .venv/bin/activate
 ```
@@ -17,7 +17,7 @@ source .venv/bin/activate
 ### 使用 pip
 
 ```bash
-cd seekcontext
+cd contextseek
 python3 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[test]"
@@ -33,9 +33,9 @@ pip install -e ".[langchain,openai]"        # LangChain + OpenAI embedding
 ## 2. 最小示例（InMemory）
 
 ```python
-from seekcontext import SeekContext
+from contextseek import ContextSeek
 
-ctx = SeekContext.from_settings()  # 默认 InMemory 后端
+ctx = ContextSeek.from_settings()  # 默认 InMemory 后端
 
 item = ctx.add(
     "用户偏好使用中文回答",
@@ -53,20 +53,20 @@ for hit in response:
 ## 3. 文件持久化
 
 ```python
-from seekcontext import SeekContext, SeekContextSettings
-from seekcontext.config.settings import StorageSettings
+from contextseek import ContextSeek, ContextSeekSettings
+from contextseek.config.settings import StorageSettings
 
-settings = SeekContextSettings(
-    storage=StorageSettings(backend="file", path=".seekcontext/data"),
+settings = ContextSeekSettings(
+    storage=StorageSettings(backend="file", path=".contextseek/data"),
 )
-ctx = SeekContext.from_settings(settings)
+ctx = ContextSeek.from_settings(settings)
 ```
 
 或通过 `.env`（参见仓库根目录 [.env.example](../../../.env.example)）：
 
 ```env
 STORAGE_BACKEND=file
-STORAGE_PATH=.seekcontext/data
+STORAGE_PATH=.contextseek/data
 ```
 
 ## 4. 检索、升档与 Agent 工具
@@ -105,10 +105,10 @@ uv run python examples/research_agent_demo.py
 ## 7. HTTP / MCP / CLI
 
 ```bash
-uvicorn seekcontext.http.server:app --port 8000
-seekcontext-mcp-stdio
-seekcontext add --scope acme/proj/user --content "fact" --source cli
-seekcontext retrieve --scope acme/proj/user --query "fact" --k 5
+uvicorn contextseek.http.server:app --port 8000
+contextseek-mcp-stdio
+contextseek add --scope acme/proj/user --content "fact" --source cli
+contextseek retrieve --scope acme/proj/user --query "fact" --k 5
 ```
 
 下一步：[核心概念](../guides/core-concepts.md) · [写入与检索](../guides/write-and-retrieve.md)

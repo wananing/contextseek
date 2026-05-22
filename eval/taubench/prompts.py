@@ -1,8 +1,8 @@
-"""Prompt templates for the tau-bench + SeekContext evaluation agent."""
+"""Prompt templates for the tau-bench + ContextSeek evaluation agent."""
 
-# System prompt injected as wiki addendum — SeekContext background section
+# System prompt injected as wiki addendum — ContextSeek background section
 SEEKCONTEXT_CONTEXT_ADDON = """\
-## Available SeekContext background from past tasks
+## Available ContextSeek background from past tasks
 
 The following items may contain reusable domain knowledge, policy rule
 clarifications, task-solving patterns, or prior failure notes from earlier
@@ -16,7 +16,7 @@ only when relevant and always verify against the current task.
 
 TAUBENCH_SYSTEM_PROMPT_ADDON = """\
 
-## Additional Instructions for SeekContext
+## Additional Instructions for ContextSeek
 
 You have access to background context from past tasks (shown above when
 available). This context may help you:

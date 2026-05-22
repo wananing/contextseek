@@ -1,1 +1,1 @@
-"""SeekContext + tau2-bench evaluation framework."""
+"""ContextSeek + tau2-bench evaluation framework."""

@@ -1,5 +1,5 @@
 # tau-bench Baseline Configuration
-# Native tool-calling agent, no SeekContext integration.
+# Native tool-calling agent, no ContextSeek integration.
 
 experiment_name: taubench_baseline
 domain: airline
@@ -17,4 +17,4 @@ agent:
   temperature: 0.0
   max_steps: 100
 
-# No seekcontext section needed for baseline
+# No contextseek section needed for baseline

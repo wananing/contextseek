@@ -182,7 +182,7 @@ def evaluate_stage(
         existing = report_path.read_text(encoding="utf-8").rstrip("\n")
         report_path.write_text(existing + "\n\n" + "\n".join(section_lines) + "\n", encoding="utf-8")
     else:
-        header = ["# AppWorld SeekContext Evaluation Report", ""]
+        header = ["# AppWorld ContextSeek Evaluation Report", ""]
         report_path.write_text("\n".join(header + section_lines) + "\n", encoding="utf-8")
 
     (output_dir / "summary.json").write_text(

@@ -1,6 +1,6 @@
 # Observability
 
-SeekContext emits two observability streams: an **audit log** (JSONL, one record per API call) and **Prometheus-compatible metrics** (exported to a text file). Both are off by default.
+ContextSeek emits two observability streams: an **audit log** (JSONL, one record per API call) and **Prometheus-compatible metrics** (exported to a text file). Both are off by default.
 
 ---
 
@@ -10,7 +10,7 @@ Enable the audit log in `.env`:
 
 ```env
 OBSERVABILITY_AUDIT_ENABLED=true
-OBSERVABILITY_AUDIT_PATH=.seekcontext/audit.jsonl
+OBSERVABILITY_AUDIT_PATH=.contextseek/audit.jsonl
 ```
 
 Every `add()`, `retrieve()`, `compact()`, `dream()`, `feedback()`, `forget()`, `delete()`, and `evidence_chain()` call appends one JSON line to the file.
@@ -40,7 +40,7 @@ Each line is a JSON object with these fields:
 
 ```json
 // add
-{"ref": "seekcontext://acme/bot/...", "item_id": "abc123", "stage": "knowledge"}
+{"ref": "contextseek://acme/bot/...", "item_id": "abc123", "stage": "knowledge"}
 
 // retrieve
 {"query": "backup procedure", "k": 10, "full": false, "hits": 7, "layer": "summary"}
@@ -55,7 +55,7 @@ Each line is a JSON object with these fields:
 import json
 
 records = []
-with open(".seekcontext/audit.jsonl") as f:
+with open(".contextseek/audit.jsonl") as f:
     for line in f:
         records.append(json.loads(line))
 
@@ -100,27 +100,27 @@ Enable metrics export:
 
 ```env
 OBSERVABILITY_METRICS_ENABLED=true
-OBSERVABILITY_METRICS_PATH=.seekcontext/metrics.prom
+OBSERVABILITY_METRICS_PATH=.contextseek/metrics.prom
 ```
 
-SeekContext writes a Prometheus text file at `metrics_path` after every audited call. Scrape it with a Prometheus file-based exporter, or serve it from a custom endpoint.
+ContextSeek writes a Prometheus text file at `metrics_path` after every audited call. Scrape it with a Prometheus file-based exporter, or serve it from a custom endpoint.
 
 The file follows the standard [Prometheus exposition format](https://prometheus.io/docs/instrumenting/exposition_formats/):
 
 ```
-# TYPE seekcontext_add_total counter
-seekcontext_add_total 42
-# TYPE seekcontext_retrieve_total counter
-seekcontext_retrieve_total 1337
-# TYPE seekcontext_retrieve_latency_ms_sum gauge
-seekcontext_retrieve_latency_ms_sum 8423.5
-seekcontext_retrieve_latency_ms_count 1337
+# TYPE contextseek_add_total counter
+contextseek_add_total 42
+# TYPE contextseek_retrieve_total counter
+contextseek_retrieve_total 1337
+# TYPE contextseek_retrieve_latency_ms_sum gauge
+contextseek_retrieve_latency_ms_sum 8423.5
+contextseek_retrieve_latency_ms_count 1337
 ...
 ```
 
 ### Available metrics
 
-All metric names are prefixed with `seekcontext_`:
+All metric names are prefixed with `contextseek_`:
 
 | Metric | Type | Description |
 |--------|------|-------------|
@@ -137,7 +137,7 @@ All metric names are prefixed with `seekcontext_`:
 ### Using `MetricsCollector` directly
 
 ```python
-from seekcontext.observability.metrics import MetricsCollector
+from contextseek.observability.metrics import MetricsCollector
 
 collector = MetricsCollector()
 collector.ingest_from_audit_log(ctx.audit_log)
@@ -166,7 +166,7 @@ print(f"avg retrieve latency: {collector.get_avg('retrieve_latency_ms'):.1f} ms"
 ## CLI metrics
 
 ```bash
-seekcontext metrics
+contextseek metrics
 ```
 
 Prints the current Prometheus text from the configured `metrics_path` file, or from in-memory counters if file metrics are disabled.

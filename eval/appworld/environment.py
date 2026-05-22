@@ -2,7 +2,7 @@
 
 The default path imports AppWorld in-process. When ``appworld_python`` is set,
 the bridge launches ``appworld_worker.py`` with that interpreter so AppWorld can
-live in a separate virtualenv from SeekContext.
+live in a separate virtualenv from ContextSeek.
 """
 
 from __future__ import annotations

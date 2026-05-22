@@ -1,8 +1,8 @@
 # DataPlugs (data sources)
 
-A **DataPlug** ingests **external data sources** into SeekContext through one API: `SeekContext.plug()`. After import, every row is a `ContextItem`—use `retrieve()`, provenance, and `compact()` depending on stage and source type.
+A **DataPlug** ingests **external data sources** into ContextSeek through one API: `ContextSeek.plug()`. After import, every row is a `ContextItem`—use `retrieve()`, provenance, and `compact()` depending on stage and source type.
 
-Built-in plugs (in `seekcontext.plugs`):
+Built-in plugs (in `contextseek.plugs`):
 
 | Data source type | Class | Typical `stage` | Primary read path |
 |------------------|-------|-----------------|-------------------|
@@ -13,10 +13,10 @@ Built-in plugs (in `seekcontext.plugs`):
 
 | In scope | Out of scope |
 |----------|--------------|
-| RAG, memory, traces, skills (`seekcontext.plugs`) | Agent framework bridges (`bridges/langchain`, `bridges/deepagents`) |
+| RAG, memory, traces, skills (`contextseek.plugs`) | Agent framework bridges (`bridges/langchain`, `bridges/deepagents`) |
 | — | Per-turn chat adapters in the harness |
 
-Skill importers are implemented in `plugs/skills/` and re-exported from `seekcontext.plugs`. See [Skill import](#skill-import-plugsskills).
+Skill importers are implemented in `plugs/skills/` and re-exported from `contextseek.plugs`. See [Skill import](#skill-import-plugsskills).
 
 Agent orchestration stays in your harness; import **documents, memories, traces, and skills** with plugs or `add()`.
 
@@ -26,7 +26,7 @@ Agent orchestration stays in your harness; import **documents, memories, traces,
 
 ```python
 from collections.abc import Iterator
-from seekcontext.protocols.plugs import DataPlug, PlugMeta, RawEvent
+from contextseek.protocols.plugs import DataPlug, PlugMeta, RawEvent
 
 class MyWikiPlug:
     def metadata(self) -> PlugMeta:
@@ -68,10 +68,10 @@ Per event:
 4. Same **`add()`** pipeline as manual writes (summarizer, embedder, conflict check)
 
 ```python
-from seekcontext import SeekContext
-from seekcontext.plugs import RAGPlug
+from contextseek import ContextSeek
+from contextseek.plugs import RAGPlug
 
-ctx = SeekContext.from_settings()
+ctx = ContextSeek.from_settings()
 scope = "acme/kb/imports"
 
 ctx.plug(rag_plug, scope=scope)
@@ -85,7 +85,7 @@ hits = ctx.retrieve("rollback procedure", scope=scope, k=10)
 Import chunks from any vector DB, search API, or RAG pipeline so they enter the evolution path (`raw` → `knowledge`) and accept `feedback()`.
 
 ```python
-from seekcontext.plugs import RAGPlug
+from contextseek.plugs import RAGPlug
 
 docs = vectorstore.similarity_search("deployment checklist", k=10)
 payload = [
@@ -116,12 +116,12 @@ Default tags: `rag`, `retrieval`. Default `source_type`: `external_api`.
 
 ## PowerMemPlug — memory store
 
-Import rows from [PowerMem](https://github.com/oceanbase/powermem) or any compatible memory API without replacing that system—SeekContext becomes a unified recall layer on top.
+Import rows from [PowerMem](https://github.com/oceanbase/powermem) or any compatible memory API without replacing that system—ContextSeek becomes a unified recall layer on top.
 
 ### From live store
 
 ```python
-from seekcontext.plugs import PowerMemPlug
+from contextseek.plugs import PowerMemPlug
 
 plug = PowerMemPlug.from_memory(
     memory,
@@ -157,7 +157,7 @@ Filter after import: `retrieve(..., filters={"tags": ["powermem"]})`.
 Import **execution traces** (agent runs, tool loops, job logs) as structured `raw` items for extraction and evolution.
 
 ```python
-from seekcontext.plugs import TracePlug
+from contextseek.plugs import TracePlug
 
 ctx.plug(
     TracePlug(traces=[
@@ -198,18 +198,18 @@ Single traces can also be written with `add(..., source_type=SourceType.trace_ex
 Skill and tool definitions live at **`stage=skill`**. Same `plug()` API as RAG/memory/trace.
 
 ```bash
-seekcontext skill-import --scope acme/bot/skills --format hermes --path ~/.hermes/skills
-seekcontext skill-import --scope acme/bot/skills --format openai --path tools.json
-seekcontext skill-import --scope acme/bot/skills --format mcp --path mcp-tools.json
+contextseek skill-import --scope acme/bot/skills --format hermes --path ~/.hermes/skills
+contextseek skill-import --scope acme/bot/skills --format openai --path tools.json
+contextseek skill-import --scope acme/bot/skills --format mcp --path mcp-tools.json
 ```
 
 ```python
-from seekcontext.plugs import HermesSkillImporter, MCPToolImporter
+from contextseek.plugs import HermesSkillImporter, MCPToolImporter
 
 ctx.plug(HermesSkillImporter("~/.hermes/skills"), scope="acme/bot/skills")
 ```
 
-(`seekcontext.plugs.skills` works the same if you prefer the subpackage path.)
+(`contextseek.plugs.skills` works the same if you prefer the subpackage path.)
 
 | Importer | Formats |
 |----------|---------|
@@ -241,7 +241,7 @@ flowchart LR
 ctx.add("Official SLA: 4h", scope=scope, source="wiki/sla", tags=["kb"])
 ctx.plug(PowerMemPlug.from_records(mem_rows), scope=scope)
 ctx.plug(RAGPlug(documents=chunks), scope=scope)
-# skills: CLI skill-import or HermesSkillImporter from seekcontext.plugs
+# skills: CLI skill-import or HermesSkillImporter from contextseek.plugs
 
 ctx.retrieve("SLA and billing preference", scope=scope, k=15)
 ctx.skill_tools(scope=scope, query="deploy checklist")

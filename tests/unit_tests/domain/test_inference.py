@@ -1,14 +1,14 @@
 """Tests for stage/stability/provenance inference."""
 
-from seekcontext.domain.inference import (
+from contextseek.domain.inference import (
     infer_stage,
     infer_stability,
     infer_confidence,
     build_provenance,
     _is_trace_structure,
 )
-from seekcontext.domain.provenance import SourceType
-from seekcontext.domain.stages import Stage, Stability
+from contextseek.domain.provenance import SourceType
+from contextseek.domain.stages import Stage, Stability
 
 
 class TestInference:

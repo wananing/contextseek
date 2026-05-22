@@ -1,17 +1,17 @@
 # ContextItem Model
 
-SeekContext stores all data as `ContextItem` objects — memory snippets, KB articles, traces, and distilled skills are the same type. Stage, provenance, and tags express semantics; the type never changes.
+ContextSeek stores all data as `ContextItem` objects — memory snippets, KB articles, traces, and distilled skills are the same type. Stage, provenance, and tags express semantics; the type never changes.
 
 ---
 
 ## The unified object
 
 ```python
-from seekcontext import SeekContext
-from seekcontext.domain.provenance import SourceType
-from seekcontext.domain.stages import Stage, Stability
+from contextseek import ContextSeek
+from contextseek.domain.provenance import SourceType
+from contextseek.domain.stages import Stage, Stability
 
-ctx = SeekContext.from_settings()
+ctx = ContextSeek.from_settings()
 
 item = ctx.add(
     "Always run integration tests before production deploy.",
@@ -132,7 +132,7 @@ See `upstream()`, `evidence_chain()`, and `chain_confidence()` in [Provenance & 
 
 ## Why one type instead of eight
 
-Earlier agent stacks often define separate types: profile, session, KB, trace, skill, etc. SeekContext collapses them because:
+Earlier agent stacks often define separate types: profile, session, KB, trace, skill, etc. ContextSeek collapses them because:
 
 1. You should not have to choose a type at write time.
 2. The same text may start as `raw` and become `knowledge` after evolution.

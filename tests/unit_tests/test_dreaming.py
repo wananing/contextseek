@@ -2,12 +2,12 @@
 
 from datetime import datetime, timedelta, timezone
 
-from seekcontext.config.strategies import DreamStrategy
-from seekcontext.domain.context_item import ContextItem, _generate_id, _utc_now
-from seekcontext.domain.links import LinkType
-from seekcontext.domain.provenance import Provenance, SourceType
-from seekcontext.domain.stages import Stability, Stage
-from seekcontext.evolution.dreaming import (
+from contextseek.config.strategies import DreamStrategy
+from contextseek.domain.context_item import ContextItem, _generate_id, _utc_now
+from contextseek.domain.links import LinkType
+from contextseek.domain.provenance import Provenance, SourceType
+from contextseek.domain.stages import Stability, Stage
+from contextseek.evolution.dreaming import (
     ConsolidationEngine,
     ConsolidationResult,
     DivergenceEngine,
@@ -15,7 +15,7 @@ from seekcontext.evolution.dreaming import (
     DreamEngine,
     DreamReport,
 )
-from seekcontext.policies.decay import DecayConfig, compute_decay
+from contextseek.policies.decay import DecayConfig, compute_decay
 
 
 def _make_item(
@@ -467,16 +467,16 @@ class TestDreamItemProperties:
 
 
 # ═══════════════════════════════════════════
-# SeekContext.dream() API integration
+# ContextSeek.dream() API integration
 # ═══════════════════════════════════════════
 
 
-class TestSeekContextDreamAPI:
+class TestContextSeekDreamAPI:
     def test_dream_api_dry_run(self):
-        """SeekContext.dream(dry_run=True) returns report without persisting."""
-        from seekcontext.client.seekcontext import SeekContext
+        """ContextSeek.dream(dry_run=True) returns report without persisting."""
+        from contextseek.client.contextseek import ContextSeek
 
-        ctx = SeekContext()
+        ctx = ContextSeek()
         scope = "test/dream/api"
 
         # Add enough items
@@ -503,9 +503,9 @@ class TestSeekContextDreamAPI:
         assert len(items_after) == 12
 
     def test_dream_api_persists_items(self):
-        """SeekContext.dream(dry_run=False) persists dream items."""
-        from seekcontext.client.seekcontext import SeekContext
-        from seekcontext.config.strategies import DreamStrategy, StrategyConfig
+        """ContextSeek.dream(dry_run=False) persists dream items."""
+        from contextseek.client.contextseek import ContextSeek
+        from contextseek.config.strategies import DreamStrategy, StrategyConfig
 
         dream_cfg = DreamStrategy(
             consolidation_min_access=1,
@@ -514,7 +514,7 @@ class TestSeekContextDreamAPI:
             cooldown_hours=0.0,
         )
         strategy = StrategyConfig(dream=dream_cfg)
-        ctx = SeekContext(strategy=strategy)
+        ctx = ContextSeek(strategy=strategy)
         scope = "test/dream/persist"
 
         # Add similar items

@@ -1,6 +1,6 @@
 # Installation
 
-SeekContext requires **Python 3.11, 3.12, or 3.13**. The core wheel includes the SDK, CLI, and MCP entry points. No API keys are required for the default in-memory backend.
+ContextSeek requires **Python 3.11, 3.12, or 3.13**. The core wheel includes the SDK, CLI, and MCP entry points. No API keys are required for the default in-memory backend.
 
 ## System requirements
 
@@ -16,23 +16,23 @@ SeekContext requires **Python 3.11, 3.12, or 3.13**. The core wheel includes the
 ```bash
 python3 --version   # should be 3.11+
 pip install -U pip
-pip install seekcontext
+pip install contextseek
 ```
 
 Verify:
 
 ```bash
-seekcontext --help
-python -c "from seekcontext import SeekContext; print(SeekContext.from_settings())"
+contextseek --help
+python -c "from contextseek import ContextSeek; print(ContextSeek.from_settings())"
 ```
 
 Installed console scripts:
 
 | Command | Package role |
 |---------|----------------|
-| `seekcontext` | CLI (`add`, `retrieve`, `expand`, `compact`, …) |
-| `seekcontext-mcp-stdio` | MCP over stdio |
-| `seekcontext-mcp-sse` | MCP over SSE (pass `--port`) |
+| `contextseek` | CLI (`add`, `retrieve`, `expand`, `compact`, …) |
+| `contextseek-mcp-stdio` | MCP over stdio |
+| `contextseek-mcp-sse` | MCP over SSE (pass `--port`) |
 
 ## Optional extras (detailed)
 
@@ -40,23 +40,23 @@ Extras are [PEP 508](https://peps.python.org/pep-0508/) dependency groups. Combi
 
 | Extra | Pulls in (high level) | Install |
 |-------|------------------------|---------|
-| *(core)* | `seekvfs`, `pydantic`, `pydantic-settings`, `pyyaml` | `pip install seekcontext` |
-| `http` | FastAPI, Uvicorn | `pip install seekcontext[http]` |
-| `langchain` | `langchain-core` | `pip install seekcontext[langchain]` |
-| `openai` | `langchain-openai` | `pip install seekcontext[langchain,openai]` |
-| `ollama` | `langchain-ollama` | `pip install seekcontext[langchain,ollama]` |
-| `huggingface` | `langchain-huggingface` | `pip install seekcontext[langchain,huggingface]` |
-| `oceanbase` | `pyobvector`, SQLAlchemy | `pip install seekcontext[oceanbase]` |
-| `test` | `pytest` | `pip install seekcontext[test]` |
+| *(core)* | `seekvfs`, `pydantic`, `pydantic-settings`, `pyyaml` | `pip install contextseek` |
+| `http` | FastAPI, Uvicorn | `pip install contextseek[http]` |
+| `langchain` | `langchain-core` | `pip install contextseek[langchain]` |
+| `openai` | `langchain-openai` | `pip install contextseek[langchain,openai]` |
+| `ollama` | `langchain-ollama` | `pip install contextseek[langchain,ollama]` |
+| `huggingface` | `langchain-huggingface` | `pip install contextseek[langchain,huggingface]` |
+| `oceanbase` | `pyobvector`, SQLAlchemy | `pip install contextseek[oceanbase]` |
+| `test` | `pytest` | `pip install contextseek[test]` |
 
 ### Recommended bundles
 
 ```bash
 # Local agent + REST API
-pip install "seekcontext[http,langchain,openai]"
+pip install "contextseek[http,langchain,openai]"
 
 # OceanBase deployment
-pip install "seekcontext[oceanbase,langchain,openai,http]"
+pip install "contextseek[oceanbase,langchain,openai,http]"
 
 # Contributing to the repo
 pip install -e ".[test]"
@@ -69,8 +69,8 @@ pip install -e ".[test]"
 ### With uv (recommended for contributors)
 
 ```bash
-git clone https://github.com/ob-labs/seekcontext.git
-cd seekcontext
+git clone https://github.com/ob-labs/contextseek.git
+cd contextseek
 uv sync                    # creates .venv + installs from uv.lock
 source .venv/bin/activate
 uv run pytest tests/ -q    # 140+ tests, no .env required
@@ -79,8 +79,8 @@ uv run pytest tests/ -q    # 140+ tests, no .env required
 ### With pip editable
 
 ```bash
-git clone https://github.com/ob-labs/seekcontext.git
-cd seekcontext
+git clone https://github.com/ob-labs/contextseek.git
+cd contextseek
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[test]"
@@ -95,11 +95,11 @@ uv run python examples/full_pipeline_file.py
 
 ## Dependency: seekvfs
 
-`seekcontext` depends on **[seekvfs](https://github.com/oceanbase/seekvfs)** (virtual filesystem abstraction). It is installed automatically as a normal dependency. You do not configure seekvfs separately unless you build custom storage adapters.
+`contextseek` depends on **[seekvfs](https://github.com/oceanbase/seekvfs)** (virtual filesystem abstraction). It is installed automatically as a normal dependency. You do not configure seekvfs separately unless you build custom storage adapters.
 
 ## Virtual environments and Docker
 
-**venv / conda:** Always activate the environment where `seekcontext` was installed before running CLI or examples.
+**venv / conda:** Always activate the environment where `contextseek` was installed before running CLI or examples.
 
 **Docker sketch:**
 
@@ -107,23 +107,23 @@ uv run python examples/full_pipeline_file.py
 FROM python:3.12-slim
 WORKDIR /app
 COPY . .
-RUN pip install "seekcontext[http,langchain,openai]"
+RUN pip install "contextseek[http,langchain,openai]"
 ENV STORAGE_BACKEND=file
-ENV STORAGE_PATH=/data/seekcontext
-CMD ["uvicorn", "seekcontext.http.server:app", "--host", "0.0.0.0", "--port", "8000"]
+ENV STORAGE_PATH=/data/contextseek
+CMD ["uvicorn", "contextseek.http.server:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-Mount `/data/seekcontext` as a volume for persistence. Inject `OPENAI_API_KEY` at runtime, not in the image layer.
+Mount `/data/contextseek` as a volume for persistence. Inject `OPENAI_API_KEY` at runtime, not in the image layer.
 
 ## Troubleshooting install
 
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
-| `seekcontext: command not found` | Script dir not on `PATH` | Use `python -m` from venv or `pip install --user` path |
-| `No module named 'seekcontext'` | Wrong interpreter | `which python` inside activated venv |
-| Import error for `langchain_openai` | Missing `openai` extra | `pip install seekcontext[openai]` |
+| `contextseek: command not found` | Script dir not on `PATH` | Use `python -m` from venv or `pip install --user` path |
+| `No module named 'contextseek'` | Wrong interpreter | `which python` inside activated venv |
+| Import error for `langchain_openai` | Missing `openai` extra | `pip install contextseek[openai]` |
 | Tests fail with OpenAI auth | Local `.env` loads LLM keys | Rename `.env` temporarily or unset `LLM_PROVIDER` |
-| OceanBase import fails | Missing extra | `pip install seekcontext[oceanbase]` |
+| OceanBase import fails | Missing extra | `pip install contextseek[oceanbase]` |
 
 ## Security note
 

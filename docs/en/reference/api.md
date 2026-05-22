@@ -1,29 +1,29 @@
 # API Reference
 
-All public methods are on one `SeekContext` object. Import and construct it once; all operations share the same adapter, audit log, and strategy.
+All public methods are on one `ContextSeek` object. Import and construct it once; all operations share the same adapter, audit log, and strategy.
 
 ```python
-from seekcontext import SeekContext
-ctx = SeekContext.from_settings()
+from contextseek import ContextSeek
+ctx = ContextSeek.from_settings()
 ```
 
 ---
 
 ## Construction
 
-### `SeekContext.from_settings(settings=None, *, _version="default")`
+### `ContextSeek.from_settings(settings=None, *, _version="default")`
 
-Build a `SeekContext` from environment variables, a `.env` file, or an explicit `SeekContextSettings` object.
+Build a `ContextSeek` from environment variables, a `.env` file, or an explicit `ContextSeekSettings` object.
 
 ```python
 # Auto-reads .env / environment variables
-ctx = SeekContext.from_settings()
+ctx = ContextSeek.from_settings()
 
 # Explicit settings
-from seekcontext import SeekContextSettings
-from seekcontext.config.settings import StorageSettings, EmbeddingSettings, LLMSettings
+from contextseek import ContextSeekSettings
+from contextseek.config.settings import StorageSettings, EmbeddingSettings, LLMSettings
 
-settings = SeekContextSettings(
+settings = ContextSeekSettings(
     storage=StorageSettings(backend="file", path="/data/ctx"),
     embedding=EmbeddingSettings(
         provider="langchain",
@@ -37,17 +37,17 @@ settings = SeekContextSettings(
         model="gpt-4o-mini",
     ),
 )
-ctx = SeekContext.from_settings(settings)
+ctx = ContextSeek.from_settings(settings)
 ```
 
 See [Configuration](../getting-started/configuration.md) for all available settings.
 
-### `SeekContext.from_runtime_config(path=None)`
+### `ContextSeek.from_runtime_config(path=None)`
 
 Build from a JSON/YAML runtime config file. Intended for server deployments where storage, embedder, and evolution strategy are specified in a single file.
 
 ```python
-ctx = SeekContext.from_runtime_config("seekcontext.runtime.json")
+ctx = ContextSeek.from_runtime_config("contextseek.runtime.json")
 ```
 
 ---
@@ -58,7 +58,7 @@ ctx = SeekContext.from_runtime_config("seekcontext.runtime.json")
 
 Write a new `ContextItem`. This is the only write path.
 
-On `add()`, SeekContext:
+On `add()`, ContextSeek:
 1. Builds `Provenance` from `source` and `source_type`
 2. Infers `stage` and `stability` (or uses overrides)
 3. Detects exact duplicates (raises `ValueError`) and near-conflicts (tags item)
@@ -84,8 +84,8 @@ On `add()`, SeekContext:
 **Raises:** `ValueError` if an exact duplicate already exists in the scope.
 
 ```python
-from seekcontext.domain.provenance import SourceType
-from seekcontext.domain.stages import Stage
+from contextseek.domain.provenance import SourceType
+from contextseek.domain.stages import Stage
 
 item = ctx.add(
     "Always run integration tests before production deploy.",
@@ -103,7 +103,7 @@ print(item.id, item.stage)
 Attach a `DataPlug` and ingest all its events into the store.
 
 ```python
-from seekcontext.plugs import RAGPlug
+from contextseek.plugs import RAGPlug
 
 rag_plug = RAGPlug(results=my_rag_results)
 ctx.plug(rag_plug, scope="acme/kb/general")
@@ -427,7 +427,7 @@ print(result.output)
 
 ## Versioning
 
-### `pin(version) → SeekContext`
+### `pin(version) → ContextSeek`
 
 Return a copy of the client with a different `policy_version` label. The copy shares the same adapter and strategy; only the audit `policy_version` field changes. Useful for canary/A-B deployment labeling.
 

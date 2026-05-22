@@ -8,30 +8,30 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from seekcontext.config.settings import (
+from contextseek.config.settings import (
     EmbeddingSettings,
     EvolutionSettings,
     LLMSettings,
     ObservabilitySettings,
     RetrievalSettings,
-    SeekContextSettings,
+    ContextSeekSettings,
     StorageSettings,
     to_strategy_config,
 )
-from seekcontext.config.factory import _import_class, build_embedder, build_llm
+from contextseek.config.factory import _import_class, build_embedder, build_llm
 
 
 # ---------------------------------------------------------------------------
-# SeekContextSettings construction
+# ContextSeekSettings construction
 # ---------------------------------------------------------------------------
 
 
-class TestSeekContextSettings:
+class TestContextSeekSettings:
     """Test settings model construction and defaults."""
 
     def test_default_construction(self):
         """Zero-config construction succeeds with sensible defaults."""
-        settings = SeekContextSettings()
+        settings = ContextSeekSettings()
         assert settings.storage.backend == "memory"
         assert settings.embedding.provider == "none"
         assert settings.llm.provider == "none"
@@ -41,7 +41,7 @@ class TestSeekContextSettings:
 
     def test_explicit_construction(self):
         """Explicit nested values are preserved."""
-        settings = SeekContextSettings(
+        settings = ContextSeekSettings(
             storage=StorageSettings(backend="file", path="/tmp/ctx"),
             embedding=EmbeddingSettings(
                 provider="langchain",
@@ -60,7 +60,7 @@ class TestSeekContextSettings:
     def test_env_override_case_insensitive(self, monkeypatch):
         """Env keys are matched case-insensitively (PowerMem-style)."""
         monkeypatch.setenv("storage_backend", "file")
-        settings = SeekContextSettings()
+        settings = ContextSeekSettings()
         assert settings.storage.backend == "file"
 
     def test_env_override(self, monkeypatch):
@@ -71,7 +71,7 @@ class TestSeekContextSettings:
         monkeypatch.setenv("EVOLUTION_ENABLED", "true")
         monkeypatch.setenv("OBSERVABILITY_AUDIT_ENABLED", "true")
 
-        settings = SeekContextSettings()
+        settings = ContextSeekSettings()
         assert settings.storage.backend == "file"
         assert settings.storage.path == "/data/store"
         assert settings.retrieval.default_k == 50
@@ -85,7 +85,7 @@ class TestSeekContextSettings:
         monkeypatch.setenv("EMBEDDING_MODEL", "custom-v1")
         monkeypatch.setenv("EMBEDDING_DIMS", "768")
 
-        settings = SeekContextSettings()
+        settings = ContextSeekSettings()
         assert settings.embedding.provider == "langchain"
         assert settings.embedding.class_path == "my_pkg.MyEmbed"
         assert settings.embedding.model == "custom-v1"
@@ -104,14 +104,14 @@ class TestSeekContextSettings:
                 continue
             key, value = line.split("=", 1)
             monkeypatch.setenv(key.strip(), value.strip())
-        settings = SeekContextSettings()
+        settings = ContextSeekSettings()
         assert settings.storage.backend == "file"
         assert settings.storage.path == "/from/env/file"
 
     def test_extra_fields_ignored(self, monkeypatch):
         """Unknown environment variables don't cause errors."""
         monkeypatch.setenv("ZZZ_NOT_A_SEEKCONTEXT_VAR", "xyz")
-        settings = SeekContextSettings()
+        settings = ContextSeekSettings()
         assert settings.storage.backend == "memory"
 
 
@@ -125,7 +125,7 @@ class TestToStrategyConfig:
 
     def test_default_round_trip(self):
         """Default settings produce a valid StrategyConfig."""
-        settings = SeekContextSettings()
+        settings = ContextSeekSettings()
         config = to_strategy_config(settings)
         assert config.retrieval.default_k == 20
         assert config.retrieval.recall_routes == ("phrase", "terms")
@@ -135,7 +135,7 @@ class TestToStrategyConfig:
 
     def test_custom_values_transfer(self):
         """Custom settings values transfer to StrategyConfig."""
-        settings = SeekContextSettings(
+        settings = ContextSeekSettings(
             retrieval=RetrievalSettings(default_k=100, vector_weight=0.9),
             evolution=EvolutionSettings(min_cluster_size=5),
         )
@@ -179,9 +179,9 @@ class TestFactory:
                 return self._embeddings.embed_query(text)
 
         with patch(
-            "seekcontext.config.factory._import_class", return_value=mock_cls
+            "contextseek.config.factory._import_class", return_value=mock_cls
         ), patch(
-            "seekcontext.embedders.langchain_embedder.LangChainEmbedder",
+            "contextseek.embedders.langchain_embedder.LangChainEmbedder",
             FakeLangChainEmbedder,
         ):
             embedder = build_embedder(EmbeddingSettings(
@@ -210,7 +210,7 @@ class TestFactory:
         mock_cls = MagicMock(return_value=mock_llm)
 
         with patch(
-            "seekcontext.config.factory._import_class", return_value=mock_cls
+            "contextseek.config.factory._import_class", return_value=mock_cls
         ):
             llm = build_llm(LLMSettings(
                 provider="langchain",
@@ -239,13 +239,13 @@ class TestFactory:
 
 
 class TestFromSettings:
-    """Test SeekContext.from_settings() factory."""
+    """Test ContextSeek.from_settings() factory."""
 
     def test_default_from_settings(self):
         """from_settings() with defaults creates working client."""
-        from seekcontext import SeekContext
+        from contextseek import ContextSeek
 
-        ctx = SeekContext.from_settings()
+        ctx = ContextSeek.from_settings()
         assert ctx.adapter is not None
         assert ctx.embedder is None  # no embedding configured
 
@@ -257,35 +257,35 @@ class TestFromSettings:
 
     def test_from_settings_file_backend(self, tmp_path):
         """from_settings() with file backend works."""
-        from seekcontext import SeekContext
+        from contextseek import ContextSeek
 
-        settings = SeekContextSettings(
+        settings = ContextSeekSettings(
             storage=StorageSettings(backend="file", path=str(tmp_path / "store")),
         )
-        ctx = SeekContext.from_settings(settings)
+        ctx = ContextSeek.from_settings(settings)
         item = ctx.add("file backend test", scope="t/p/u", source="test")
         response = ctx.retrieve("file", scope="t/p/u")
         assert len(response) >= 1
 
     def test_from_settings_with_evolution(self):
         """from_settings() enables evolution engine when configured."""
-        from seekcontext import SeekContext
+        from contextseek import ContextSeek
 
-        settings = SeekContextSettings(
+        settings = ContextSeekSettings(
             evolution=EvolutionSettings(enabled=True),
         )
-        ctx = SeekContext.from_settings(settings)
+        ctx = ContextSeek.from_settings(settings)
         assert ctx.evolution_engine is not None
 
     def test_from_settings_with_audit(self, tmp_path):
         """from_settings() enables audit log when configured."""
-        from seekcontext import SeekContext
+        from contextseek import ContextSeek
 
-        settings = SeekContextSettings(
+        settings = ContextSeekSettings(
             observability=ObservabilitySettings(
                 audit_enabled=True,
                 audit_path=str(tmp_path / "audit.jsonl"),
             ),
         )
-        ctx = SeekContext.from_settings(settings)
+        ctx = ContextSeek.from_settings(settings)
         assert ctx.audit_log is not None

@@ -6,18 +6,18 @@ Common issues and how to resolve them.
 
 ## Installation
 
-### `ModuleNotFoundError: No module named 'seekcontext'`
+### `ModuleNotFoundError: No module named 'contextseek'`
 
 Make sure the package is installed in the active Python environment:
 
 ```bash
-pip show seekcontext
-python -c "from seekcontext import SeekContext"
+pip show contextseek
+python -c "from contextseek import ContextSeek"
 ```
 
 If using `uv`:
 ```bash
-uv run python -c "from seekcontext import SeekContext"
+uv run python -c "from contextseek import ContextSeek"
 ```
 
 ### `ModuleNotFoundError: No module named 'langchain_openai'`
@@ -25,11 +25,11 @@ uv run python -c "from seekcontext import SeekContext"
 You need an optional extra. Install the relevant one:
 
 ```bash
-pip install "seekcontext[langchain,openai]"      # OpenAI
-pip install "seekcontext[langchain,ollama]"       # Ollama
-pip install "seekcontext[langchain,huggingface]"  # HuggingFace
-pip install "seekcontext[oceanbase]"              # OceanBase
-pip install "seekcontext[http]"                   # FastAPI server
+pip install "contextseek[langchain,openai]"      # OpenAI
+pip install "contextseek[langchain,ollama]"       # Ollama
+pip install "contextseek[langchain,huggingface]"  # HuggingFace
+pip install "contextseek[oceanbase]"              # OceanBase
+pip install "contextseek[http]"                   # FastAPI server
 ```
 
 ---
@@ -38,7 +38,7 @@ pip install "seekcontext[http]"                   # FastAPI server
 
 ### Settings are not loading from `.env`
 
-SeekContext looks for `.env` in this order:
+ContextSeek looks for `.env` in this order:
 1. `./` (current working directory)
 2. `{repo_root}/`
 3. `{repo_root}/examples/configs/`
@@ -47,17 +47,17 @@ SeekContext looks for `.env` in this order:
 Run your script from the directory containing `.env`, or pass settings explicitly:
 
 ```python
-from seekcontext import SeekContext, SeekContextSettings
-from seekcontext.config.settings import StorageSettings
+from contextseek import ContextSeek, ContextSeekSettings
+from contextseek.config.settings import StorageSettings
 
-ctx = SeekContext.from_settings(
-    SeekContextSettings(storage=StorageSettings(backend="file", path="/data/ctx"))
+ctx = ContextSeek.from_settings(
+    ContextSeekSettings(storage=StorageSettings(backend="file", path="/data/ctx"))
 )
 ```
 
 ### `OPENAI_API_KEY` not recognized
 
-SeekContext does not read API keys directly — they are read by the LangChain class. Ensure the key is in your environment:
+ContextSeek does not read API keys directly — they are read by the LangChain class. Ensure the key is in your environment:
 
 ```bash
 export OPENAI_API_KEY=sk-...
@@ -96,7 +96,7 @@ print(len(list(response)))
 
 ### `retrieve()` returns L2 bodies instead of summaries (with a warning)
 
-The summarizer is not configured. L1 summaries are empty so SeekContext falls back to L2. To enable:
+The summarizer is not configured. L1 summaries are empty so ContextSeek falls back to L2. To enable:
 
 ```env
 SUMMARIZER_PROVIDER=llm
@@ -150,13 +150,13 @@ An item with identical content already exists in the scope. Options:
 ### `uvicorn` not found
 
 ```bash
-pip install "seekcontext[http]"
-uvicorn seekcontext.http.server:app --port 8000
+pip install "contextseek[http]"
+uvicorn contextseek.http.server:app --port 8000
 ```
 
 ### Server starts but returns 500 on `/add`
 
-Check server logs. Common cause: storage path is not writable or embedding model is not configured. Verify with a local `SeekContext.from_settings()` first.
+Check server logs. Common cause: storage path is not writable or embedding model is not configured. Verify with a local `ContextSeek.from_settings()` first.
 
 ---
 
@@ -164,11 +164,11 @@ Check server logs. Common cause: storage path is not writable or embedding model
 
 ### MCP client can't connect to stdio server
 
-Ensure the command is `seekcontext-mcp-stdio` (installed as a script by pip). Verify:
+Ensure the command is `contextseek-mcp-stdio` (installed as a script by pip). Verify:
 
 ```bash
-which seekcontext-mcp-stdio
-seekcontext-mcp-stdio --help
+which contextseek-mcp-stdio
+contextseek-mcp-stdio --help
 ```
 
 ---
@@ -178,7 +178,7 @@ seekcontext-mcp-stdio --help
 ### `pyobvector` not found
 
 ```bash
-pip install "seekcontext[oceanbase]"
+pip install "contextseek[oceanbase]"
 ```
 
 ### Connection refused / timeout
@@ -192,7 +192,7 @@ Check that `OB_HOST`, `OB_PORT`, `OB_USER`, and `OB_PASSWORD` are set correctly.
 **Inspect audit records:**
 ```python
 import json
-with open(".seekcontext/audit.jsonl") as f:
+with open(".contextseek/audit.jsonl") as f:
     for line in f:
         rec = json.loads(line)
         if rec["status"] != "ok":
@@ -203,16 +203,16 @@ with open(".seekcontext/audit.jsonl") as f:
 ```python
 import logging
 logging.basicConfig(level=logging.DEBUG)
-ctx = SeekContext.from_settings()
+ctx = ContextSeek.from_settings()
 ```
 
 **Check settings actually loaded:**
 ```python
-from seekcontext.config.settings import SeekContextSettings
-s = SeekContextSettings()
+from contextseek.config.settings import ContextSeekSettings
+s = ContextSeekSettings()
 print(s.storage.backend, s.embedding.provider, s.llm.provider)
 ```
 
 ---
 
-[← Installation](getting-started/installation.md) · [Configuration](getting-started/configuration.md) · [GitHub Issues](https://github.com/ob-labs/seekcontext/issues)
+[← Installation](getting-started/installation.md) · [Configuration](getting-started/configuration.md) · [GitHub Issues](https://github.com/ob-labs/contextseek/issues)

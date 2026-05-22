@@ -1,34 +1,34 @@
-# SeekContext
+# ContextSeek
 
-[![License](https://img.shields.io/github/license/ob-labs/seekcontext.svg)](LICENSE)
-[![CI](https://github.com/ob-labs/seekcontext/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/ob-labs/seekcontext/actions/workflows/main.yml?query=branch%3Amain)
+[![License](https://img.shields.io/github/license/ob-labs/contextseek.svg)](LICENSE)
+[![CI](https://github.com/ob-labs/contextseek/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/ob-labs/contextseek/actions/workflows/main.yml?query=branch%3Amain)
 
 面向 AI Agent 的语义上下文基础设施。[English](README.md)
 
-## SeekContext 是什么
+## ContextSeek 是什么
 
-SeekContext 是一个位于 LLM 与 Agent 运行时之间的上下文层，让 Agent 能够跨会话持久化、检索和演进上下文——而不必把这些数据分散到 JSONL 日志、向量库或独立的记忆服务里。
+ContextSeek 是一个位于 LLM 与 Agent 运行时之间的上下文层，让 Agent 能够跨会话持久化、检索和演进上下文——而不必把这些数据分散到 JSONL 日志、向量库或独立的记忆服务里。
 
 所有数据统一表示为 `ContextItem`：一个携带内容、来源（数据从哪来、置信度多少）、关联关系以及成熟度元信息的基本单元。条目沿 `raw → extracted → knowledge → skill` 的生命周期自动推进，Agent 不需要手动管理分层或摘要。
 
-SeekContext 与存储无关。InMemory 和文件后端适合开发与单进程场景；OceanBase 后端在生产环境提供 HNSW 向量 + 全文混合检索能力。
+ContextSeek 与存储无关。InMemory 和文件后端适合开发与单进程场景；OceanBase 后端在生产环境提供 HNSW 向量 + 全文混合检索能力。
 
 ## 为什么需要它
 
 Agent 运行时会快速积累大量数据：执行轨迹、检索片段、工具调用结果、用户反馈。这些数据往往在会话结束时丢弃，或散落在多个持久化层中，缺乏统一的 schema、来源追踪和质量元信息。
 
-SeekContext 从一个不同的前提出发：上下文应当是一等资产——可按语义查询检索，可按证据链审计，可从原始观测演进为精炼知识。同一份上下文可以服务于推理时的召回、运行后的调试、轨迹对比评测，以及离线训练，无需重新导入独立的流水线。
+ContextSeek 从一个不同的前提出发：上下文应当是一等资产——可按语义查询检索，可按证据链审计，可从原始观测演进为精炼知识。同一份上下文可以服务于推理时的召回、运行后的调试、轨迹对比评测，以及离线训练，无需重新导入独立的流水线。
 
 ## 快速开始
 
 ```bash
-pip install seekcontext
+pip install contextseek
 ```
 
 ```python
-from seekcontext import SeekContext
+from contextseek import ContextSeek
 
-ctx = SeekContext.from_settings()  # 自动读取 .env 或环境变量
+ctx = ContextSeek.from_settings()  # 自动读取 .env 或环境变量
 
 # 写入
 ctx.add(
@@ -42,13 +42,13 @@ for hit in ctx.retrieve("分布式数据库", scope="acme/db/engineer", k=10):
     print(f"[{hit.item.stage.value}] score={hit.score:.2f} | {hit.item.summary[:60]}")
 ```
 
-通过 `.env` 配置（参见 [.env.example](.env.example)）或在代码中构造 `SeekContextSettings`。存储后端、Embedding 提供方和 LLM 是三个必要配置项。
+通过 `.env` 配置（参见 [.env.example](.env.example)）或在代码中构造 `ContextSeekSettings`。存储后端、Embedding 提供方和 LLM 是三个必要配置项。
 
 ## 文档
 
 - [快速上手 (ZH)](docs/zh/getting-started/quickstart.md) / [Getting started (EN)](docs/en/getting-started/quickstart.md)：安装、`.env` 配置，以及核心操作的完整演示。
 - [客户端 API 参考](docs/zh/reference/client-api.md)：`add`、`retrieve`、`expand`、`compact`、`dream`、`evidence_chain` 等方法的完整签名。
-- [配置参考](docs/zh/reference/configuration.md)：所有环境变量与 `SeekContextSettings` 字段。
+- [配置参考](docs/zh/reference/configuration.md)：所有环境变量与 `ContextSeekSettings` 字段。
 - [DataPlug 指南](docs/zh/guides/integrations/dataplugs.md)：如何从 RAG 流水线、记忆库、执行轨迹及工具注册表导入数据。
 - [示例](examples/README.md)：常见工作流的完整示例脚本。
 - [AppWorld 评测](eval/appworld/README.md) / [τ-bench 评测](eval/taubench/README.md)：可选评测脚手架，有独立的依赖与配置要求。

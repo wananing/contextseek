@@ -1,6 +1,6 @@
 # 安装
 
-SeekContext 需要 **Python 3.11、3.12 或 3.13**。核心 wheel 包含 SDK、CLI 与 MCP 入口；默认内存后端**不需要**任何 API Key。
+ContextSeek 需要 **Python 3.11、3.12 或 3.13**。核心 wheel 包含 SDK、CLI 与 MCP 入口；默认内存后端**不需要**任何 API Key。
 
 ## 系统要求
 
@@ -16,42 +16,42 @@ SeekContext 需要 **Python 3.11、3.12 或 3.13**。核心 wheel 包含 SDK、C
 ```bash
 python3 --version
 pip install -U pip
-pip install seekcontext
+pip install contextseek
 ```
 
 验证：
 
 ```bash
-seekcontext --help
-python -c "from seekcontext import SeekContext; print(SeekContext.from_settings())"
+contextseek --help
+python -c "from contextseek import ContextSeek; print(ContextSeek.from_settings())"
 ```
 
 安装的命令：
 
 | 命令 | 作用 |
 |------|------|
-| `seekcontext` | CLI |
-| `seekcontext-mcp-stdio` | MCP stdio |
-| `seekcontext-mcp-sse` | MCP SSE（可 `--port`） |
+| `contextseek` | CLI |
+| `contextseek-mcp-stdio` | MCP stdio |
+| `contextseek-mcp-sse` | MCP SSE（可 `--port`） |
 
 ## 可选 extras（说明）
 
 | Extra | 主要依赖 | 安装 |
 |-------|----------|------|
-| 核心 | seekvfs、pydantic 等 | `pip install seekcontext` |
-| `http` | FastAPI、Uvicorn | `pip install seekcontext[http]` |
-| `langchain` | langchain-core | `pip install seekcontext[langchain]` |
-| `openai` | langchain-openai | `pip install seekcontext[langchain,openai]` |
-| `ollama` | langchain-ollama | `pip install seekcontext[langchain,ollama]` |
-| `huggingface` | langchain-huggingface | `pip install seekcontext[langchain,huggingface]` |
-| `oceanbase` | pyobvector、SQLAlchemy | `pip install seekcontext[oceanbase]` |
-| `test` | pytest | `pip install seekcontext[test]` |
+| 核心 | seekvfs、pydantic 等 | `pip install contextseek` |
+| `http` | FastAPI、Uvicorn | `pip install contextseek[http]` |
+| `langchain` | langchain-core | `pip install contextseek[langchain]` |
+| `openai` | langchain-openai | `pip install contextseek[langchain,openai]` |
+| `ollama` | langchain-ollama | `pip install contextseek[langchain,ollama]` |
+| `huggingface` | langchain-huggingface | `pip install contextseek[langchain,huggingface]` |
+| `oceanbase` | pyobvector、SQLAlchemy | `pip install contextseek[oceanbase]` |
+| `test` | pytest | `pip install contextseek[test]` |
 
 ### 推荐组合
 
 ```bash
-pip install "seekcontext[http,langchain,openai]"
-pip install "seekcontext[oceanbase,langchain,openai,http]"
+pip install "contextseek[http,langchain,openai]"
+pip install "contextseek[oceanbase,langchain,openai,http]"
 pip install -e ".[test]"   # 贡献代码
 ```
 
@@ -62,8 +62,8 @@ pip install -e ".[test]"   # 贡献代码
 ### uv（贡献者推荐）
 
 ```bash
-git clone https://github.com/ob-labs/seekcontext.git
-cd seekcontext
+git clone https://github.com/ob-labs/contextseek.git
+cd contextseek
 uv sync
 source .venv/bin/activate
 uv run pytest tests/ -q
@@ -72,8 +72,8 @@ uv run pytest tests/ -q
 ### pip 可编辑安装
 
 ```bash
-git clone https://github.com/ob-labs/seekcontext.git
-cd seekcontext
+git clone https://github.com/ob-labs/contextseek.git
+cd contextseek
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[test]"
 pytest tests/ -q
@@ -98,23 +98,23 @@ uv run python examples/full_pipeline_file.py
 ```dockerfile
 FROM python:3.12-slim
 WORKDIR /app
-RUN pip install "seekcontext[http,langchain,openai]"
+RUN pip install "contextseek[http,langchain,openai]"
 ENV STORAGE_BACKEND=file
-ENV STORAGE_PATH=/data/seekcontext
-CMD ["uvicorn", "seekcontext.http.server:app", "--host", "0.0.0.0", "--port", "8000"]
+ENV STORAGE_PATH=/data/contextseek
+CMD ["uvicorn", "contextseek.http.server:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-持久化请挂载 `/data/seekcontext`；`OPENAI_API_KEY` 在运行时注入，不要写入镜像层。
+持久化请挂载 `/data/contextseek`；`OPENAI_API_KEY` 在运行时注入，不要写入镜像层。
 
 ## 安装问题排查
 
 | 现象 | 可能原因 | 处理 |
 |------|----------|------|
-| 找不到 `seekcontext` 命令 | PATH 未含 venv/bin | 激活 venv 或用 `python -m` |
-| `No module named seekcontext` | 解释器不对 | 检查 `which python` |
-| 缺少 `langchain_openai` | 未装 openai extra | `pip install seekcontext[openai]` |
+| 找不到 `contextseek` 命令 | PATH 未含 venv/bin | 激活 venv 或用 `python -m` |
+| `No module named contextseek` | 解释器不对 | 检查 `which python` |
+| 缺少 `langchain_openai` | 未装 openai extra | `pip install contextseek[openai]` |
 | 测试报 OpenAI 鉴权 | 本地 `.env` 启用了 LLM | 临时移走 `.env` 或设 `LLM_PROVIDER=none` |
-| OceanBase 导入失败 | 未装 oceanbase extra | `pip install seekcontext[oceanbase]` |
+| OceanBase 导入失败 | 未装 oceanbase extra | `pip install contextseek[oceanbase]` |
 
 ## 安全提示
 

@@ -1,6 +1,6 @@
-# SeekContext + τ-bench Evaluation
+# ContextSeek + τ-bench Evaluation
 
-τ-bench (tau2) evaluation harness for SeekContext.
+τ-bench (tau2) evaluation harness for ContextSeek.
 
 ## Quick Start
 
@@ -17,10 +17,10 @@ make taubench-install
 # Optional sanity check.
 make taubench-check
 
-# 1. Baseline (no SeekContext)
+# 1. Baseline (no ContextSeek)
 make taubench-bench-baseline
 
-# 2. Warm-up (store trajectories in SeekContext)
+# 2. Warm-up (store trajectories in ContextSeek)
 make taubench-bench-store
 
 # 3. React (retrieve + write)
@@ -59,7 +59,7 @@ export OB_HOST=127.0.0.1
 export OB_PORT=2881
 export OB_USER=root@test
 export OB_PASSWORD=your-password
-export OB_DB_NAME=seekcontext
+export OB_DB_NAME=contextseek
 
 export OPENAI_API_KEY=your-key
 export EMBEDDING_BASE_URL=https://your-gateway/v1  # optional
@@ -80,32 +80,32 @@ The OceanBase targets use:
 | Target | Config |
 |--------|--------|
 | `make taubench-bench-store-oceanbase` | `store_only_oceanbase.yaml` |
-| `make taubench-bench-react-oceanbase` | `seekcontext_react_oceanbase.yaml` |
-| `make taubench-bench-evolve-oceanbase` | `seekcontext_evolve_oceanbase.yaml` |
+| `make taubench-bench-react-oceanbase` | `contextseek_react_oceanbase.yaml` |
+| `make taubench-bench-evolve-oceanbase` | `contextseek_evolve_oceanbase.yaml` |
 
 ## Manual Commands
 
 The Makefile targets above expand to these direct commands:
 
 ```bash
-# 1. Baseline (no SeekContext)
+# 1. Baseline (no ContextSeek)
 .venv-taubench/bin/python -m eval.taubench.run \
   --config eval/taubench/config/baseline.yaml \
   --stage run,evaluate
 
-# 2. Warm-up (store trajectories in SeekContext)
+# 2. Warm-up (store trajectories in ContextSeek)
 .venv-taubench/bin/python -m eval.taubench.run \
   --config eval/taubench/config/store_only.yaml \
   --stage run,distill
 
 # 3. React (retrieve + write)
 .venv-taubench/bin/python -m eval.taubench.run \
-  --config eval/taubench/config/seekcontext_react.yaml \
+  --config eval/taubench/config/contextseek_react.yaml \
   --stage run,evaluate
 
 # 4. Evolution (retrieve + auto-compact)
 .venv-taubench/bin/python -m eval.taubench.run \
-  --config eval/taubench/config/seekcontext_evolve.yaml \
+  --config eval/taubench/config/contextseek_evolve.yaml \
   --stage run,evaluate
 ```
 
@@ -120,15 +120,15 @@ python -m eval.taubench.run \
 
 ## Experiment Groups
 
-| Config | Purpose | SeekContext |
+| Config | Purpose | ContextSeek |
 |--------|---------|-------------|
 | `baseline.yaml` | Native agent, no SC | None |
 | `store_only.yaml` | Warm-up phase | Write only |
-| `seekcontext_react.yaml` | Retrieval-enhanced | Retrieve + Write |
-| `seekcontext_evolve.yaml` | Retrieval + Evolution | Retrieve + Write + Compact |
+| `contextseek_react.yaml` | Retrieval-enhanced | Retrieve + Write |
+| `contextseek_evolve.yaml` | Retrieval + Evolution | Retrieve + Write + Compact |
 | `store_only_oceanbase.yaml` | OceanBase warm-up phase | Write only |
-| `seekcontext_react_oceanbase.yaml` | OceanBase retrieval-enhanced | Retrieve + Write |
-| `seekcontext_evolve_oceanbase.yaml` | OceanBase retrieval + Evolution | Retrieve + Write + Compact |
+| `contextseek_react_oceanbase.yaml` | OceanBase retrieval-enhanced | Retrieve + Write |
+| `contextseek_evolve_oceanbase.yaml` | OceanBase retrieval + Evolution | Retrieve + Write + Compact |
 
 ## Output Structure
 

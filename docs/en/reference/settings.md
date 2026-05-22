@@ -11,10 +11,10 @@ Copy `.env.example` to `.env` and edit. See [Configuration](../getting-started/c
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `STORAGE_BACKEND` | `memory` | Storage backend: `memory` or `file` |
-| `STORAGE_PATH` | `.seekcontext/store` | Root directory when `backend=file` |
-| `STORAGE_URI_SCHEME` | `seekcontext://` | URI scheme used for scope refs |
+| `STORAGE_PATH` | `.contextseek/store` | Root directory when `backend=file` |
+| `STORAGE_URI_SCHEME` | `contextseek://` | URI scheme used for scope refs |
 | `STORAGE_COLD_BACKEND` | _(empty)_ | Optional cold-tier backend type; empty disables tiered storage |
-| `STORAGE_COLD_PATH` | `.seekcontext/cold` | Root directory for cold-tier file backend |
+| `STORAGE_COLD_PATH` | `.contextseek/cold` | Root directory for cold-tier file backend |
 
 For OceanBase see the `OB_*` section below and [Storage backends](../guides/storage.md).
 
@@ -27,7 +27,7 @@ For OceanBase see the `OB_*` section below and [Storage backends](../guides/stor
 | `OB_USER` | `root@test` | Connection user |
 | `OB_PASSWORD` | _(empty)_ | Connection password |
 | `OB_DB_NAME` | `test` | Database name |
-| `OB_TABLE_NAME` | `seekcontext_items` | Vector table name |
+| `OB_TABLE_NAME` | `contextseek_items` | Vector table name |
 
 OceanBase is instantiated via the runtime factory or examples — these vars are not read by the default `from_settings()` path unless you call `from_runtime_config()`.
 
@@ -41,7 +41,7 @@ OceanBase is instantiated via the runtime factory or examples — these vars are
 | `EMBEDDING_DIMS` | `0` | Vector dimensions — required when provider ≠ `none` |
 | `EMBEDDING_KWARGS` | `{}` | Extra kwargs forwarded to the provider constructor (JSON object) |
 
-Provider API keys (`OPENAI_API_KEY`, `DASHSCOPE_API_KEY`, etc.) are read directly by the LangChain class, not by SeekContext.
+Provider API keys (`OPENAI_API_KEY`, `DASHSCOPE_API_KEY`, etc.) are read directly by the LangChain class, not by ContextSeek.
 
 ## LLM (`LLM_*`)
 
@@ -149,9 +149,9 @@ See commented blocks in `.env.example` for all template keys and their placehold
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OBSERVABILITY_AUDIT_ENABLED` | `false` | Enable JSONL audit log |
-| `OBSERVABILITY_AUDIT_PATH` | `.seekcontext/audit.jsonl` | Audit log file path |
+| `OBSERVABILITY_AUDIT_PATH` | `.contextseek/audit.jsonl` | Audit log file path |
 | `OBSERVABILITY_METRICS_ENABLED` | `false` | Enable Prometheus text metrics export |
-| `OBSERVABILITY_METRICS_PATH` | `.seekcontext/metrics.prom` | Metrics file path |
+| `OBSERVABILITY_METRICS_PATH` | `.contextseek/metrics.prom` | Metrics file path |
 | `OBSERVABILITY_TRACE_SAMPLE_RATE` | `1.0` | Fraction of requests to trace (0.0–1.0) |
 
 ## Lifecycle (`LIFECYCLE_*`)
@@ -180,10 +180,10 @@ When `SCOPE_LINT=true`, the following rules are checked:
 This check is off by default; enable it during development only. You can also configure it in code:
 
 ```python
-from seekcontext import SeekContext
-from seekcontext.config.settings import SeekContextSettings
+from contextseek import ContextSeek
+from contextseek.config.settings import ContextSeekSettings
 
-ctx = SeekContext.from_settings(SeekContextSettings(scope_lint=True))
+ctx = ContextSeek.from_settings(ContextSeekSettings(scope_lint=True))
 ```
 
 ---
@@ -193,7 +193,7 @@ ctx = SeekContext.from_settings(SeekContextSettings(scope_lint=True))
 ```env
 # Storage
 STORAGE_BACKEND=file
-STORAGE_PATH=.seekcontext/data
+STORAGE_PATH=.contextseek/data
 
 # Embeddings (OpenAI example)
 EMBEDDING_PROVIDER=langchain

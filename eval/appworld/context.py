@@ -1,4 +1,4 @@
-"""SeekContext client helpers for AppWorld evaluation."""
+"""ContextSeek client helpers for AppWorld evaluation."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ import json
 from dataclasses import dataclass, field
 from typing import Any
 
-from seekcontext import SeekContext, SeekContextSettings, SourceType, Stage
-from seekcontext.config.settings import (
+from contextseek import ContextSeek, ContextSeekSettings, SourceType, Stage
+from contextseek.config.settings import (
     EmbeddingSettings,
     EvolutionSettings,
     LLMSettings,
@@ -21,15 +21,15 @@ from seekcontext.config.settings import (
 
 @dataclass
 class RetrievalPayload:
-    """Prompt-ready SeekContext retrieval output."""
+    """Prompt-ready ContextSeek retrieval output."""
 
     text: str = ""
     count: int = 0
     item_ids: list[str] = field(default_factory=list)
 
 
-def _build_settings(config: dict[str, Any]) -> SeekContextSettings:
-    """Build SeekContext settings from the ``seekcontext`` YAML section."""
+def _build_settings(config: dict[str, Any]) -> ContextSeekSettings:
+    """Build ContextSeek settings from the ``contextseek`` YAML section."""
     storage = StorageSettings(**config.get("storage", {}))
     embedding = EmbeddingSettings(**config.get("embedding", {}))
     llm = LLMSettings(**config.get("llm", {}))
@@ -38,7 +38,7 @@ def _build_settings(config: dict[str, Any]) -> SeekContextSettings:
     evolution = EvolutionSettings(**config.get("evolution", {}))
     security = SecuritySettings(**config.get("security", {}))
     observability = ObservabilitySettings(**config.get("observability", {}))
-    return SeekContextSettings(
+    return ContextSeekSettings(
         storage=storage,
         embedding=embedding,
         llm=llm,
@@ -89,7 +89,7 @@ def _response_to_payload(response: Any, *, max_tokens: int) -> RetrievalPayload:
     return RetrievalPayload(text="\n\n".join(lines), count=len(item_ids), item_ids=item_ids)
 
 
-class SeekContextClient:
+class ContextSeekClient:
     """Small domain client used by the AppWorld ReAct agent and pipeline."""
 
     def __init__(
@@ -100,10 +100,10 @@ class SeekContextClient:
     ) -> None:
         self.scope = scope
         self.config = config or {}
-        self.ctx = _build_seekcontext(self.config)
+        self.ctx = _build_contextseek(self.config)
 
     @classmethod
-    def from_config(cls, config: dict[str, Any], *, scope: str) -> "SeekContextClient":
+    def from_config(cls, config: dict[str, Any], *, scope: str) -> "ContextSeekClient":
         return cls(config=config, scope=scope)
 
     def retrieve_for_task(self, instruction: str, *, max_tokens: int = 1200) -> RetrievalPayload:
@@ -209,7 +209,7 @@ class SeekContextClient:
         return updated
 
     def compact(self) -> dict[str, Any]:
-        """Run SeekContext compaction/evolution for the configured scope."""
+        """Run ContextSeek compaction/evolution for the configured scope."""
         report = self.ctx.compact(scope=self.scope)
         return {
             "merged_count": report.merged_count,
@@ -230,32 +230,32 @@ class SeekContextClient:
         }
 
 
-def _build_seekcontext(config: dict[str, Any]) -> SeekContext:
-    """Build SeekContext for the AppWorld harness, including OceanBase storage."""
+def _build_contextseek(config: dict[str, Any]) -> ContextSeek:
+    """Build ContextSeek for the AppWorld harness, including OceanBase storage."""
     settings = _build_settings(config)
     storage_cfg = config.get("storage", {})
     backend = str(storage_cfg.get("backend", settings.storage.backend)).lower()
     if backend not in {"oceanbase", "ob"}:
-        return SeekContext.from_settings(settings)
-    return _build_oceanbase_seekcontext(config, settings)
+        return ContextSeek.from_settings(settings)
+    return _build_oceanbase_contextseek(config, settings)
 
 
-def _build_oceanbase_seekcontext(
+def _build_oceanbase_contextseek(
     config: dict[str, Any],
-    settings: SeekContextSettings,
-) -> SeekContext:
-    """Build an OceanBase-backed SeekContext instance for storage A/B tests."""
+    settings: ContextSeekSettings,
+) -> ContextSeek:
+    """Build an OceanBase-backed ContextSeek instance for storage A/B tests."""
     import seekvfs
 
-    from seekcontext.storage import OceanBaseBackend, SeekVFSStorageAdapter
-    from seekcontext.config.factory import build_embedder, build_llm, build_summarizer
-    from seekcontext.config.settings import to_strategy_config
-    from seekcontext.routing.resolver import ScopeResolver
+    from contextseek.storage import OceanBaseBackend, SeekVFSStorageAdapter
+    from contextseek.config.factory import build_embedder, build_llm, build_summarizer
+    from contextseek.config.settings import to_strategy_config
+    from contextseek.routing.resolver import ScopeResolver
 
     embedder = build_embedder(settings.embedding)
     if embedder is None:
         raise ValueError(
-            "seekcontext.storage.backend=oceanbase requires seekcontext.embedding "
+            "contextseek.storage.backend=oceanbase requires contextseek.embedding "
             "to configure a real embedding provider."
         )
 
@@ -269,13 +269,13 @@ def _build_oceanbase_seekcontext(
         raise ValueError("OceanBase storage requires vector_dims or embedding.dims")
 
     backend = OceanBaseBackend(
-        table_name=ob_cfg.get("table_name", "seekcontext_appworld"),
+        table_name=ob_cfg.get("table_name", "contextseek_appworld"),
         vector_dims=vector_dims,
         host=ob_cfg.get("host", "127.0.0.1"),
         port=str(ob_cfg.get("port", "2881")),
         user=ob_cfg.get("user", "root@test"),
         password=ob_cfg.get("password", ""),
-        db_name=ob_cfg.get("db_name", "seekcontext"),
+        db_name=ob_cfg.get("db_name", "contextseek"),
         fulltext_parser=ob_cfg.get("fulltext_parser", "ngram"),
         vidx_metric_type=ob_cfg.get("metric", ob_cfg.get("vidx_metric_type", "cosine")),
         vector_weight=float(ob_cfg.get("vector_weight", 0.7)),
@@ -291,7 +291,7 @@ def _build_oceanbase_seekcontext(
 
     audit_log = None
     if settings.observability.audit_enabled:
-        from seekcontext.observability.audit import AuditLog
+        from contextseek.observability.audit import AuditLog
 
         audit_log = AuditLog(
             persist_path=settings.observability.audit_path,
@@ -304,11 +304,11 @@ def _build_oceanbase_seekcontext(
 
     evolution_engine = None
     if settings.evolution.enabled:
-        from seekcontext.evolution.engine import EvolutionEngine
+        from contextseek.evolution.engine import EvolutionEngine
 
         evolution_engine = EvolutionEngine()
 
-    return SeekContext(
+    return ContextSeek(
         adapter=adapter,
         resolver=ScopeResolver(uri_scheme=scheme),
         embedder=embedder,

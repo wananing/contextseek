@@ -11,10 +11,10 @@
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `STORAGE_BACKEND` | `memory` | 存储后端：`memory` 或 `file` |
-| `STORAGE_PATH` | `.seekcontext/store` | `backend=file` 时的根目录 |
-| `STORAGE_URI_SCHEME` | `seekcontext://` | Scope 引用的 URI scheme |
+| `STORAGE_PATH` | `.contextseek/store` | `backend=file` 时的根目录 |
+| `STORAGE_URI_SCHEME` | `contextseek://` | Scope 引用的 URI scheme |
 | `STORAGE_COLD_BACKEND` | _(空)_ | 可选冷层后端类型；空值禁用分层存储 |
-| `STORAGE_COLD_PATH` | `.seekcontext/cold` | 冷层文件后端根目录 |
+| `STORAGE_COLD_PATH` | `.contextseek/cold` | 冷层文件后端根目录 |
 
 OceanBase 见下方 `OB_*` 部分及[存储后端](../guides/storage.md)。
 
@@ -27,7 +27,7 @@ OceanBase 见下方 `OB_*` 部分及[存储后端](../guides/storage.md)。
 | `OB_USER` | `root@test` | 连接用户 |
 | `OB_PASSWORD` | _(空)_ | 连接密码 |
 | `OB_DB_NAME` | `test` | 数据库名 |
-| `OB_TABLE_NAME` | `seekcontext_items` | 向量表名 |
+| `OB_TABLE_NAME` | `contextseek_items` | 向量表名 |
 
 OceanBase 通过运行时工厂或 `from_runtime_config()` 实例化，默认 `from_settings()` 路径不读取这些变量。
 
@@ -41,7 +41,7 @@ OceanBase 通过运行时工厂或 `from_runtime_config()` 实例化，默认 `f
 | `EMBEDDING_DIMS` | `0` | 向量维度，provider ≠ `none` 时必填 |
 | `EMBEDDING_KWARGS` | `{}` | 传给 provider 构造函数的额外参数（JSON 对象） |
 
-Provider 的 API Key（`OPENAI_API_KEY`、`DASHSCOPE_API_KEY` 等）由 LangChain 类直接读取，SeekContext 不处理。
+Provider 的 API Key（`OPENAI_API_KEY`、`DASHSCOPE_API_KEY` 等）由 LangChain 类直接读取，ContextSeek 不处理。
 
 ## LLM（`LLM_*`）
 
@@ -149,9 +149,9 @@ Provider 的 API Key（`OPENAI_API_KEY`、`DASHSCOPE_API_KEY` 等）由 LangChai
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `OBSERVABILITY_AUDIT_ENABLED` | `false` | 启用 JSONL 审计日志 |
-| `OBSERVABILITY_AUDIT_PATH` | `.seekcontext/audit.jsonl` | 审计日志文件路径 |
+| `OBSERVABILITY_AUDIT_PATH` | `.contextseek/audit.jsonl` | 审计日志文件路径 |
 | `OBSERVABILITY_METRICS_ENABLED` | `false` | 启用 Prometheus 文本指标导出 |
-| `OBSERVABILITY_METRICS_PATH` | `.seekcontext/metrics.prom` | 指标文件路径 |
+| `OBSERVABILITY_METRICS_PATH` | `.contextseek/metrics.prom` | 指标文件路径 |
 | `OBSERVABILITY_TRACE_SAMPLE_RATE` | `1.0` | 追踪采样率（0.0–1.0） |
 
 ## 生命周期（`LIFECYCLE_*`）
@@ -180,10 +180,10 @@ Provider 的 API Key（`OPENAI_API_KEY`、`DASHSCOPE_API_KEY` 等）由 LangChai
 此检查默认关闭，建议仅在开发环境启用。也可在代码中直接配置：
 
 ```python
-from seekcontext import SeekContext
-from seekcontext.config.settings import SeekContextSettings
+from contextseek import ContextSeek
+from contextseek.config.settings import ContextSeekSettings
 
-ctx = SeekContext.from_settings(SeekContextSettings(scope_lint=True))
+ctx = ContextSeek.from_settings(ContextSeekSettings(scope_lint=True))
 ```
 
 ---
@@ -193,7 +193,7 @@ ctx = SeekContext.from_settings(SeekContextSettings(scope_lint=True))
 ```env
 # 存储
 STORAGE_BACKEND=file
-STORAGE_PATH=.seekcontext/data
+STORAGE_PATH=.contextseek/data
 
 # 向量嵌入（OpenAI 示例）
 EMBEDDING_PROVIDER=langchain

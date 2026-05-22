@@ -1,4 +1,4 @@
-"""Pipeline stage: distill tau-bench trajectories into SeekContext knowledge.
+"""Pipeline stage: distill tau-bench trajectories into ContextSeek knowledge.
 
 Tau-bench specific distillation strategies:
 1. Successful trajectory → API call sequence patterns (stage=knowledge)
@@ -12,9 +12,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from seekcontext import Stage
+from contextseek import Stage
 
-from eval.taubench.context import TauBenchSeekContextClient
+from eval.taubench.context import TauBenchContextSeekClient
 
 
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -46,17 +46,17 @@ def _looks_like_error(text: str) -> bool:
 def distill_stage(
     trajectories_dir: Path,
     output_dir: Path,
-    seekcontext_client: TauBenchSeekContextClient,
+    contextseek_client: TauBenchContextSeekClient,
     *,
     compact_after: bool = True,
     max_records: int | None = None,
 ) -> dict[str, str]:
-    """Distill trajectory JSONL files into SeekContext knowledge items.
+    """Distill trajectory JSONL files into ContextSeek knowledge items.
 
     Args:
         trajectories_dir: Directory containing *.jsonl trajectory files.
         output_dir: Directory to write distill.log.
-        seekcontext_client: Configured SeekContext client.
+        contextseek_client: Configured ContextSeek client.
         compact_after: Whether to run compact() after distillation.
         max_records: Max records to process per file.
 
@@ -75,10 +75,10 @@ def distill_stage(
         stored = 0
 
         for record in records:
-            experiences = _heuristic_experiences(record, seekcontext_client.domain)
+            experiences = _heuristic_experiences(record, contextseek_client.domain)
             for exp in experiences:
                 stage = Stage(exp.get("stage", "knowledge"))
-                seekcontext_client.store_experience(
+                contextseek_client.store_experience(
                     title=exp["title"],
                     content=exp["content"],
                     source=f"taubench_distill:{record.get('task_id', 'unknown')}",
@@ -93,7 +93,7 @@ def distill_stage(
 
     compact_report = {}
     if compact_after:
-        compact_report = seekcontext_client.compact()
+        compact_report = contextseek_client.compact()
 
     log_lines = [f"{name}: {message}" for name, message in status.items()]
     log_lines.append(f"total_stored: {total_stored}")

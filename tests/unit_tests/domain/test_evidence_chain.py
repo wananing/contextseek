@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from seekcontext.domain.context_item import ContextItem
-from seekcontext.domain.evidence_chain import (
+from contextseek.domain.context_item import ContextItem
+from contextseek.domain.evidence_chain import (
     EvidenceChain,
     compute_chain_confidence,
     compute_evidence_chain,
 )
-from seekcontext.domain.links import Link, LinkType
-from seekcontext.domain.provenance import Provenance, SourceType
-from seekcontext.domain.stages import Stage
+from contextseek.domain.links import Link, LinkType
+from contextseek.domain.provenance import Provenance, SourceType
+from contextseek.domain.stages import Stage
 
 
 def _make_item(

@@ -1,6 +1,6 @@
-"""Minimal PowerMem → SeekContext path (for users who already use PowerMem).
+"""Minimal PowerMem → ContextSeek path (for users who already use PowerMem).
 
-You only need SeekContext when context is not *just* memories — e.g. trace,
+You only need ContextSeek when context is not *just* memories — e.g. trace,
 RAG, playbooks in one ``retrieve()``. Otherwise keep using ``memory.search``.
 
 Run:
@@ -14,9 +14,9 @@ from pathlib import Path
 
 import seekvfs
 
-from seekcontext import SeekContext
-from seekcontext.plugs import PowerMemPlug
-from seekcontext.storage import FileBackend, SeekVFSStorageAdapter
+from contextseek import ContextSeek
+from contextseek.plugs import PowerMemPlug
+from contextseek.storage import FileBackend, SeekVFSStorageAdapter
 
 SCOPE = "demo/alice/bot"
 STORAGE_ROOT = "/tmp/seekctx_powermem_minimal"
@@ -47,9 +47,9 @@ def main() -> None:
     if root.exists():
         shutil.rmtree(root)
 
-    backend = FileBackend(root_dir=root, scheme="seekcontext://")
-    vfs = seekvfs.VFS({"seekcontext://": {"backend": backend}}, scheme="seekcontext://")
-    ctx = SeekContext(adapter=SeekVFSStorageAdapter(vfs))
+    backend = FileBackend(root_dir=root, scheme="contextseek://")
+    vfs = seekvfs.VFS({"contextseek://": {"backend": backend}}, scheme="contextseek://")
+    ctx = ContextSeek(adapter=SeekVFSStorageAdapter(vfs))
 
     with vfs:
         plug = PowerMemPlug.from_memory(

@@ -1,25 +1,25 @@
-"""Baseline adapter: same ReAct agent, no SeekContext integration."""
+"""Baseline adapter: same ReAct agent, no ContextSeek integration."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from ..agent import AppWorldSeekContextAgent
+from ..agent import AppWorldContextSeekAgent
 from .base import AgentAdapter, RunResult, TrajectoryStep
 
 
 class BaselineAdapter(AgentAdapter):
-    """Run AppWorld tasks without SeekContext retrieval or writes."""
+    """Run AppWorld tasks without ContextSeek retrieval or writes."""
 
     @property
     def name(self) -> str:
         return "baseline"
 
     def __init__(self) -> None:
-        self._agent: AppWorldSeekContextAgent | None = None
+        self._agent: AppWorldContextSeekAgent | None = None
 
     def configure(self, config: dict[str, Any]) -> None:
-        self._agent = AppWorldSeekContextAgent(
+        self._agent = AppWorldContextSeekAgent(
             llm_model=config.get("model", "gpt-4o"),
             llm_api_key=config.get("llm_api_key"),
             llm_base_url=config.get("llm_base_url"),
@@ -27,10 +27,10 @@ class BaselineAdapter(AgentAdapter):
             azure_endpoint=config.get("azure_endpoint"),
             azure_api_version=config.get("azure_api_version"),
             azure_deployment=config.get("azure_deployment"),
-            seekcontext_client=None,
+            contextseek_client=None,
             max_steps=config.get("max_steps", 25),
             temperature=config.get("temperature", 0.0),
-            experiment_name=config.get("experiment_name", "seekcontext_eval"),
+            experiment_name=config.get("experiment_name", "contextseek_eval"),
             appworld_python=config.get("appworld_python") or config.get("python"),
         )
 

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from seekcontext.domain.context_item import ContextItem
-from seekcontext.domain.invalidation import DegradedItem, InvalidationResult, propagate_invalidation
-from seekcontext.domain.links import Link, LinkType
-from seekcontext.domain.provenance import Provenance, SourceType
-from seekcontext.domain.stages import Stage
+from contextseek.domain.context_item import ContextItem
+from contextseek.domain.invalidation import DegradedItem, InvalidationResult, propagate_invalidation
+from contextseek.domain.links import Link, LinkType
+from contextseek.domain.provenance import Provenance, SourceType
+from contextseek.domain.stages import Stage
 
 
 def _make_item(

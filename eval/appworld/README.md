@@ -1,10 +1,10 @@
-# SeekContext AppWorld Evaluation
+# ContextSeek AppWorld Evaluation
 
-这个目录用于评测 SeekContext 作为 AppWorld ReAct Agent 长期上下文层时的效果。整体流程：先跑任务生成轨迹，再从轨迹蒸馏可复用经验，最后生成评测报告。
+这个目录用于评测 ContextSeek 作为 AppWorld ReAct Agent 长期上下文层时的效果。整体流程：先跑任务生成轨迹，再从轨迹蒸馏可复用经验，最后生成评测报告。
 
 ## 环境准备
 
-先在 `seekcontext` 仓库根目录准备 Python 环境：
+先在 `contextseek` 仓库根目录准备 Python 环境：
 
 ```bash
 uv sync --extra appworld-eval
@@ -14,7 +14,7 @@ source .venv/bin/activate
 默认配置使用 file backend。如果要跑 OceanBase 存储对照组，还需要安装 OceanBase 和 LangChain embedding 相关依赖：
 
 ```bash
-pip install "seekcontext[oceanbase,langchain,openai]"
+pip install "contextseek[oceanbase,langchain,openai]"
 ```
 
 然后为 AppWorld 单独建一个环境。可以用 conda：
@@ -27,10 +27,10 @@ appworld install
 appworld download data
 ```
 
-注意：SeekContext 评测主进程仍应在 `seekcontext/.venv` 里运行；AppWorld 通过 `APPWORLD_PYTHON` 指定的独立环境执行，避免依赖互相覆盖。
+注意：ContextSeek 评测主进程仍应在 `contextseek/.venv` 里运行；AppWorld 通过 `APPWORLD_PYTHON` 指定的独立环境执行，避免依赖互相覆盖。
 
 ```bash
-cd /path/to/seekcontext
+cd /path/to/contextseek
 source .venv/bin/activate
 export APPWORLD_PYTHON=/path/to/appworld/.venv/bin/python
 ```
@@ -84,13 +84,13 @@ agent:
 
 配置文件在 `eval/appworld/config/`：
 
-- `baseline.yaml`：baseline，只跑 ReAct Agent，不接入 SeekContext。
-- `seekcontext_store_only.yaml`：只写入 SeekContext，不在解题时检索，用于预热上下文库。
-- `seekcontext_react.yaml`：任务开始和出错后检索 SeekContext，并在任务结束写入轨迹。
-- `seekcontext_evolve.yaml`：在 `seekcontext_react` 基础上打开 `compact()`/演进。
-- `seekcontext_store_only_oceanbase.yaml`：OceanBase 存储版预热配置。
-- `seekcontext_react_oceanbase.yaml`：OceanBase 存储版正式评测配置。
-- `default.yaml`：默认单组 SeekContext 评测配置。
+- `baseline.yaml`：baseline，只跑 ReAct Agent，不接入 ContextSeek。
+- `contextseek_store_only.yaml`：只写入 ContextSeek，不在解题时检索，用于预热上下文库。
+- `contextseek_react.yaml`：任务开始和出错后检索 ContextSeek，并在任务结束写入轨迹。
+- `contextseek_evolve.yaml`：在 `contextseek_react` 基础上打开 `compact()`/演进。
+- `contextseek_store_only_oceanbase.yaml`：OceanBase 存储版预热配置。
+- `contextseek_react_oceanbase.yaml`：OceanBase 存储版正式评测配置。
+- `default.yaml`：默认单组 ContextSeek 评测配置。
 
 关键字段：
 
@@ -107,30 +107,30 @@ agent:
   # llm_base_url: ${LLM_BASE_URL}
   # llm_provider: openai
 
-seekcontext:
+contextseek:
   scope: appworld/shared/test_normal/global
   storage:
     backend: file
-    path: .seekcontext/appworld
+    path: .contextseek/appworld
 ```
 
-首次调试建议把 `max_tasks` 改成 `1` 或 `3`，确认 AppWorld、LLM 和 SeekContext 存储链路都正常后再放大。
+首次调试建议把 `max_tasks` 改成 `1` 或 `3`，确认 AppWorld、LLM 和 ContextSeek 存储链路都正常后再放大。
 
 ## 存储后端
 
 当前 file backend 是默认压测/评测存储：
 
 ```yaml
-seekcontext:
+contextseek:
   storage:
     backend: file
-    path: .seekcontext/appworld
+    path: .contextseek/appworld
 ```
 
 OceanBase 对照组使用 `OceanBaseBackend`，会走向量 + 全文混合检索，因此必须配置 embedding。默认 OceanBase 配置使用 `langchain_openai.OpenAIEmbeddings` 和 `text-embedding-3-small`：
 
 ```yaml
-seekcontext:
+contextseek:
   storage:
     backend: oceanbase
     oceanbase:
@@ -139,7 +139,7 @@ seekcontext:
       user: ${OB_USER}
       password: ${OB_PASSWORD}
       db_name: ${OB_DB_NAME}
-      table_name: seekcontext_appworld_store_only
+      table_name: contextseek_appworld_store_only
       vector_dims: 1536
       fulltext_parser: ngram
       metric: cosine
@@ -161,7 +161,7 @@ export OB_HOST=127.0.0.1
 export OB_PORT=2881
 export OB_USER='root@test'
 export OB_PASSWORD=...
-export OB_DB_NAME=seekcontext
+export OB_DB_NAME=contextseek
 ```
 
 如果内部网关同时提供 OpenAI-compatible embedding 接口，可以复用同一个网关地址，也可以单独设置：
@@ -173,7 +173,7 @@ export EMBEDDING_BASE_URL=$LLM_BASE_URL
 并在 OceanBase 配置中打开：
 
 ```yaml
-seekcontext:
+contextseek:
   embedding:
     provider: langchain
     class_path: langchain_openai.OpenAIEmbeddings
@@ -190,7 +190,7 @@ seekcontext:
 
 推荐直接使用仓库根目录的 `Makefile`。它会在本项目下维护两个隔离环境：
 
-- `.venv`：SeekContext 主评测环境。
+- `.venv`：ContextSeek 主评测环境。
 - `.venv-appworld`：AppWorld worker 环境。
 
 先创建/检查环境：
@@ -259,7 +259,7 @@ OceanBase 对照组需要提前配置 `OB_HOST`、`OB_PORT`、`OB_USER`、`OB_PA
 
 下面是等价的手动命令。
 
-第一步，跑无 SeekContext baseline：
+第一步，跑无 ContextSeek baseline：
 
 ```bash
 python -m eval.appworld.run \
@@ -278,19 +278,19 @@ python -m eval.appworld.run \
 
 等价做法：删掉对应实验目录下的 `trajectories/<adapter>.jsonl`，或把配置里的 `resume` 改成 `false`。
 
-第二步，预热 SeekContext。这个阶段会运行任务、写入原始轨迹，并通过 `distill` 从轨迹里提取 API pattern / failure note：
+第二步，预热 ContextSeek。这个阶段会运行任务、写入原始轨迹，并通过 `distill` 从轨迹里提取 API pattern / failure note：
 
 ```bash
 python -m eval.appworld.run \
-  --config eval/appworld/config/seekcontext_store_only.yaml \
+  --config eval/appworld/config/contextseek_store_only.yaml \
   --stage run,distill
 ```
 
-第三步，正式跑 SeekContext 召回增强版本：
+第三步，正式跑 ContextSeek 召回增强版本：
 
 ```bash
 python -m eval.appworld.run \
-  --config eval/appworld/config/seekcontext_react.yaml \
+  --config eval/appworld/config/contextseek_react.yaml \
   --stage run,evaluate
 ```
 
@@ -298,7 +298,7 @@ python -m eval.appworld.run \
 
 ```bash
 python -m eval.appworld.run \
-  --config eval/appworld/config/seekcontext_evolve.yaml \
+  --config eval/appworld/config/contextseek_evolve.yaml \
   --stage run,evaluate
 ```
 
@@ -306,7 +306,7 @@ python -m eval.appworld.run \
 
 ```bash
 python -m eval.appworld.run \
-  --config eval/appworld/config/seekcontext_store_only_oceanbase.yaml \
+  --config eval/appworld/config/contextseek_store_only_oceanbase.yaml \
   --stage run,distill
 ```
 
@@ -314,11 +314,11 @@ python -m eval.appworld.run \
 
 ```bash
 python -m eval.appworld.run \
-  --config eval/appworld/config/seekcontext_react_oceanbase.yaml \
+  --config eval/appworld/config/contextseek_react_oceanbase.yaml \
   --stage run,evaluate
 ```
 
-`seekcontext_store_only.yaml`、`seekcontext_react.yaml` 和 `seekcontext_evolve.yaml` 默认共用同一个 scope：
+`contextseek_store_only.yaml`、`contextseek_react.yaml` 和 `contextseek_evolve.yaml` 默认共用同一个 scope：
 
 ```text
 appworld/shared/test_normal/global
@@ -346,13 +346,13 @@ output/appworld/<experiment_name>/
 
 - `trajectories/*.jsonl`：每个 task 的 success、steps、token usage、context metadata。
 - `evaluate/report.md`：汇总成功率、平均步数、tokens、retrieved/stored/feedback。
-- `.seekcontext/appworld`：file backend 写入的 SeekContext 数据。
-- `.seekcontext/appworld_audit.jsonl`：SeekContext 检索/写入审计日志。
-- OceanBase 对照组的数据写入配置里的 `table_name`，审计日志默认写到 `.seekcontext/appworld_ob_audit.jsonl`。
+- `.contextseek/appworld`：file backend 写入的 ContextSeek 数据。
+- `.contextseek/appworld_audit.jsonl`：ContextSeek 检索/写入审计日志。
+- OceanBase 对照组的数据写入配置里的 `table_name`，审计日志默认写到 `.contextseek/appworld_ob_audit.jsonl`。
 
 ## 做同一报告内对比
 
-如果希望 `report.md` 里直接出现 baseline 和 SeekContext 的 per-task 对比，需要让两次 run 使用同一个 `experiment_name`，但不同 adapter 名。
+如果希望 `report.md` 里直接出现 baseline 和 ContextSeek 的 per-task 对比，需要让两次 run 使用同一个 `experiment_name`，但不同 adapter 名。
 
 例如复制两份配置，把它们都改成：
 
@@ -370,7 +370,7 @@ python -m eval.appworld.run --config eval/appworld/config/baseline.yaml --stage 
 再跑：
 
 ```bash
-python -m eval.appworld.run --config eval/appworld/config/seekcontext_react.yaml --stage run,evaluate
+python -m eval.appworld.run --config eval/appworld/config/contextseek_react.yaml --stage run,evaluate
 ```
 
 最终报告会在：
@@ -379,13 +379,13 @@ python -m eval.appworld.run --config eval/appworld/config/seekcontext_react.yaml
 output/appworld/appworld_compare/evaluate/report.md
 ```
 
-注意：`seekcontext_store_only` 和 `seekcontext_react` 当前都会写入 `seekcontext_react.jsonl`，store-only 更适合作为预热阶段，不建议和 react 放在同一个 `experiment_name` 下做直接报告对比。
+注意：`contextseek_store_only` 和 `contextseek_react` 当前都会写入 `contextseek_react.jsonl`，store-only 更适合作为预热阶段，不建议和 react 放在同一个 `experiment_name` 下做直接报告对比。
 
 ## 常见问题
 
-如果提示 `ModuleNotFoundError: No module named 'appworld'`，不要在 `seekcontext/.venv` 里直接 `pip install appworld`。AppWorld 和 SeekContext 的 pydantic/SQLAlchemy 依赖冲突，直接安装会破坏 SeekContext 环境。
+如果提示 `ModuleNotFoundError: No module named 'appworld'`，不要在 `contextseek/.venv` 里直接 `pip install appworld`。AppWorld 和 ContextSeek 的 pydantic/SQLAlchemy 依赖冲突，直接安装会破坏 ContextSeek 环境。
 
-先恢复 SeekContext 环境：
+先恢复 ContextSeek 环境：
 
 ```bash
 deactivate 2>/dev/null || true
@@ -423,7 +423,7 @@ appworld download data
 
 子进程里出现 `UserWarning: Attempting to work in a virtualenv... IPython` 一般不影响结果；若想消掉警告，可在 AppWorld 环境里执行 `pip install ipython`。
 
-如果 OceanBase 配置启动失败，优先检查 `seekcontext[oceanbase,langchain,openai]` 依赖、`OB_*` 环境变量、数据库是否已创建，以及 `vector_dims` 是否和 embedding 输出一致。
+如果 OceanBase 配置启动失败，优先检查 `contextseek[oceanbase,langchain,openai]` 依赖、`OB_*` 环境变量、数据库是否已创建，以及 `vector_dims` 是否和 embedding 输出一致。
 
 如果想从头重跑某个实验，删除对应输出目录即可：
 
@@ -431,8 +431,8 @@ appworld download data
 rm -rf output/appworld/<experiment_name>
 ```
 
-如果想清空 SeekContext 记忆库，删除 file backend 目录：
+如果想清空 ContextSeek 记忆库，删除 file backend 目录：
 
 ```bash
-rm -rf .seekcontext/appworld .seekcontext/appworld_audit.jsonl
+rm -rf .contextseek/appworld .contextseek/appworld_audit.jsonl
 ```

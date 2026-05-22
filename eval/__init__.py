@@ -1,1 +1,1 @@
-"""Evaluation harnesses for SeekContext."""
+"""Evaluation harnesses for ContextSeek."""

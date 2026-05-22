@@ -20,21 +20,21 @@ from typing import Any
 
 import seekvfs  # type: ignore[import-not-found]
 
-from seekcontext.client.seekcontext import SeekContext
-from seekcontext.config.settings import (
+from contextseek.client.contextseek import ContextSeek
+from contextseek.config.settings import (
     DreamSettings,
     EmbeddingSettings,
     EvolutionSettings,
     LLMSettings,
     PromptSettings,
     RetrievalSettings,
-    SeekContextSettings,
+    ContextSeekSettings,
     StorageSettings,
     SummarizerSettings,
 )
-from seekcontext.domain.provenance import SourceType
-from seekcontext.llm.client import invoke_text
-from seekcontext.storage import OceanBaseBackend, SeekVFSStorageAdapter
+from contextseek.domain.provenance import SourceType
+from contextseek.llm.client import invoke_text
+from contextseek.storage import OceanBaseBackend, SeekVFSStorageAdapter
 
 
 def _mask_secret(value: str, keep: int = 4) -> str:
@@ -93,13 +93,13 @@ def _require_env() -> tuple[str, str, str, str, str]:
     port = os.getenv("OB_PORT", "2881")
     user = os.getenv("OB_USER", "root@test")
     password = os.getenv("OB_PASSWORD", "")
-    db_name = os.getenv("OB_DB_NAME", "seekcontext")
+    db_name = os.getenv("OB_DB_NAME", "contextseek")
     if not password:
         raise RuntimeError("Please set OB_PASSWORD in environment.")
     return host, port, user, password, db_name
 
 
-def _build_settings() -> SeekContextSettings:
+def _build_settings() -> ContextSeekSettings:
     embedding_class_path = os.getenv("EMBEDDING_CLASS_PATH", "langchain_openai.OpenAIEmbeddings")
     embedding_model = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
     embedding_dims = int(os.getenv("EMBEDDING_DIMS", "1536"))
@@ -174,7 +174,7 @@ def _build_settings() -> SeekContextSettings:
         },
     )
 
-    return SeekContextSettings(
+    return ContextSeekSettings(
         storage=StorageSettings(backend="memory"),  # placeholder; replaced by OceanBase adapter
         embedding=EmbeddingSettings(
             provider="langchain",
@@ -219,13 +219,13 @@ def _build_settings() -> SeekContextSettings:
     )
 
 
-def _probe_dependencies(ctx: SeekContext, settings: SeekContextSettings) -> None:
+def _probe_dependencies(ctx: ContextSeek, settings: ContextSeekSettings) -> None:
     print("[probe] direct instantiate embedder class...")
     t_direct_emb = time.time()
     try:
         emb_cls = _load_class(settings.embedding.class_path)
         emb_instance = emb_cls(model=settings.embedding.model, **settings.embedding.kwargs)
-        direct_vec = emb_instance.embed_query("seekcontext-direct-embed-probe")
+        direct_vec = emb_instance.embed_query("contextseek-direct-embed-probe")
         print(
             f"[probe] direct embedder ok, dims={len(direct_vec)}, elapsed={time.time() - t_direct_emb:.2f}s"
         )
@@ -239,7 +239,7 @@ def _probe_dependencies(ctx: SeekContext, settings: SeekContextSettings) -> None
     if ctx.embedder is None:
         raise RuntimeError("Embedder is not configured.")
     try:
-        vec = ctx.embedder("seekcontext-connectivity-probe")
+        vec = ctx.embedder("contextseek-connectivity-probe")
     except Exception as exc:
         print(f"[probe] ctx embedder failed: {type(exc).__name__}: {exc}")
         print(traceback.format_exc())
@@ -282,8 +282,8 @@ def main() -> None:
     print("[step] loading environment and building settings...")
     ob_host, ob_port, ob_user, ob_password, ob_db_name = _require_env()
     settings = _build_settings()
-    print("[step] creating SeekContext from settings...")
-    ctx = SeekContext.from_settings(settings)
+    print("[step] creating ContextSeek from settings...")
+    ctx = ContextSeek.from_settings(settings)
     _probe_dependencies(ctx, settings)
 
     table_name = f"seekctx_llm_py_{int(time.time())}"
@@ -298,7 +298,7 @@ def main() -> None:
     print("SCOPE:", scope)
     print("RERANK_MIN_SCORE:", f"{rerank_min_score:.2f}")
     print("OB_AUTO_DROP_TABLE:", auto_drop_table)
-    print("SeekContext initialized with shared LLM:", ctx.llm is not None)
+    print("ContextSeek initialized with shared LLM:", ctx.llm is not None)
     print("[step] creating OceanBase backend...")
 
     backend = OceanBaseBackend(
@@ -316,7 +316,7 @@ def main() -> None:
         rrf_k=60,
     )
 
-    vfs = seekvfs.VFS({"seekcontext://": {"backend": backend}}, scheme="seekcontext://")
+    vfs = seekvfs.VFS({"contextseek://": {"backend": backend}}, scheme="contextseek://")
     vfs.__enter__()
     try:
         ctx.adapter = SeekVFSStorageAdapter(vfs)

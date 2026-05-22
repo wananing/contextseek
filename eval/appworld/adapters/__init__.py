@@ -5,13 +5,13 @@ from __future__ import annotations
 from .base import AgentAdapter
 from .baseline import BaselineAdapter
 from .official_simplified import OfficialSimplifiedAdapter
-from .seekcontext_react import SeekContextReactAdapter
+from .contextseek_react import ContextSeekReactAdapter
 
 
 _REGISTRY: dict[str, type[AgentAdapter]] = {
     "baseline": BaselineAdapter,
     "official_simplified": OfficialSimplifiedAdapter,
-    "seekcontext_react": SeekContextReactAdapter,
+    "contextseek_react": ContextSeekReactAdapter,
 }
 
 

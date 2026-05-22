@@ -2,10 +2,10 @@
 
 from datetime import datetime, timezone
 
-from seekcontext.domain.context_item import ContextItem, _generate_id, _utc_now
-from seekcontext.domain.links import Link, LinkType
-from seekcontext.domain.provenance import Provenance, SourceType
-from seekcontext.domain.stages import Stage, Stability, STAGE_DEFAULT_STABILITY
+from contextseek.domain.context_item import ContextItem, _generate_id, _utc_now
+from contextseek.domain.links import Link, LinkType
+from contextseek.domain.provenance import Provenance, SourceType
+from contextseek.domain.stages import Stage, Stability, STAGE_DEFAULT_STABILITY
 
 
 def _make_item(**kwargs):

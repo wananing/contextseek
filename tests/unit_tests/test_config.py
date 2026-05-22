@@ -1,6 +1,6 @@
 """Tests for strategy configuration."""
 
-from seekcontext.config.strategies import (
+from contextseek.config.strategies import (
     EvolutionStrategy,
     LifecycleStrategy,
     RetrievalStrategy,

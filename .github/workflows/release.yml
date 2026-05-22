@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/seekcontext
+      url: https://pypi.org/p/contextseek
     permissions:
       id-token: write
     steps:

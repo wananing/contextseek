@@ -1,5 +1,5 @@
 # tau-bench Store-Only Configuration
-# Runs tasks and writes trajectories to SeekContext WITHOUT retrieving.
+# Runs tasks and writes trajectories to ContextSeek WITHOUT retrieving.
 # This is the "warm-up" phase — build up context for later retrieval.
 
 experiment_name: taubench_store_only
@@ -7,7 +7,7 @@ domain: airline
 task_split: base
 max_tasks: 0                  # Warm-up with 20 tasks
 num_trials: 1
-adapter: seekcontext_store_only
+adapter: contextseek_store_only
 seed: 42
 resume: true
 output_dir: ./output/taubench/store_only
@@ -18,7 +18,7 @@ agent:
   temperature: 0.0
   max_steps: 100
 
-seekcontext:
+contextseek:
   enabled: true
   scope: taubench/airline/shared/global
   store_only: true
@@ -27,7 +27,7 @@ seekcontext:
   error_context_limit: 3
   storage:
     backend: file
-    path: .seekcontext/taubench/airline
+    path: .contextseek/taubench/airline
 
 distill:
   import_policy_doc: true     # Import airline wiki.md as knowledge items

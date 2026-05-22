@@ -1,6 +1,6 @@
 # 检索模型
 
-SeekContext 的检索是多阶段流水线：**召回** → **重排** → **分层输出**。了解各阶段有助于调优质量并控制 token 成本。
+ContextSeek 的检索是多阶段流水线：**召回** → **重排** → **分层输出**。了解各阶段有助于调优质量并控制 token 成本。
 
 ---
 
@@ -116,7 +116,7 @@ for hit in response:
 在评分前缩小候选集：
 
 ```python
-from seekcontext.domain.stages import Stage
+from contextseek.domain.stages import Stage
 
 # 按 stage 过滤
 response = ctx.retrieve("query", scope="acme/bot",

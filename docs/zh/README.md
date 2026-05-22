@@ -1,4 +1,4 @@
-# SeekContext 文档（中文）
+# ContextSeek 文档（中文）
 
 面向集成与使用的操作指南，不含内部设计稿与宣传材料。
 
@@ -40,7 +40,7 @@
 
 | 文档 | 说明 |
 |------|------|
-| [API 参考](reference/api.md) | 所有 `SeekContext` 方法、参数、返回类型 |
+| [API 参考](reference/api.md) | 所有 `ContextSeek` 方法、参数、返回类型 |
 | [配置项参考](reference/settings.md) | 所有环境变量及默认值 |
 | [示例索引](reference/examples.md) | `examples/` 目录说明 |
 

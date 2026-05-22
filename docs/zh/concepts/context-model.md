@@ -1,17 +1,17 @@
 # ContextItem 对象模型
 
-SeekContext 将所有数据存储为 `ContextItem` 对象——记忆片段、知识库段落、Trace、蒸馏技能在类型上是同一种对象。Stage、Provenance 和 Tags 表达语义，类型本身不变。
+ContextSeek 将所有数据存储为 `ContextItem` 对象——记忆片段、知识库段落、Trace、蒸馏技能在类型上是同一种对象。Stage、Provenance 和 Tags 表达语义，类型本身不变。
 
 ---
 
 ## 统一对象
 
 ```python
-from seekcontext import SeekContext
-from seekcontext.domain.provenance import SourceType
-from seekcontext.domain.stages import Stage, Stability
+from contextseek import ContextSeek
+from contextseek.domain.provenance import SourceType
+from contextseek.domain.stages import Stage, Stability
 
-ctx = SeekContext.from_settings()
+ctx = ContextSeek.from_settings()
 
 item = ctx.add(
     "生产发布前必须跑集成测试。",
@@ -132,7 +132,7 @@ knowledge: "部署前必须跑集成测试"
 
 ## 为何统一为一种类型
 
-早期 Agent 框架常将 profile、会话、知识库、Trace、技能分成不同表和 API。SeekContext 统一为一种对象，因为：
+早期 Agent 框架常将 profile、会话、知识库、Trace、技能分成不同表和 API。ContextSeek 统一为一种对象，因为：
 
 1. 写入时不应让开发者猜类型；
 2. 同一段文字会从 `raw` 演进为 `knowledge`；

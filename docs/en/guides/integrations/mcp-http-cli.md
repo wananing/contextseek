@@ -1,6 +1,6 @@
 # MCP, HTTP & CLI
 
-SeekContext exposes the same operations through three surfaces:
+ContextSeek exposes the same operations through three surfaces:
 
 | Surface | When to use |
 |---------|-------------|
@@ -9,17 +9,17 @@ SeekContext exposes the same operations through three surfaces:
 | **HTTP API** | Language-agnostic services, gateways |
 | **MCP** | IDE agents (Cursor, Claude Desktop) and tool-calling hosts |
 
-All paths call the same `SeekContext` client logic (storage, retrieval, evolution).
+All paths call the same `ContextSeek` client logic (storage, retrieval, evolution).
 
 ---
 
-## CLI (`seekcontext`)
+## CLI (`contextseek`)
 
 Installed with the package:
 
 ```bash
-pip install seekcontext
-seekcontext --help
+pip install contextseek
+contextseek --help
 ```
 
 Assumes `.env` in cwd or repo root (see [Configuration](../../getting-started/configuration.md)).
@@ -51,39 +51,39 @@ Assumes `.env` in cwd or repo root (see [Configuration](../../getting-started/co
 
 ```bash
 # Write
-seekcontext add \
+contextseek add \
   --scope acme/proj/user \
   --content "Prefer concise answers in Chinese" \
   --source cli \
   --tags preference,language
 
 # Search (L1 summaries)
-seekcontext retrieve \
+contextseek retrieve \
   --scope acme/proj/user \
   --query "language preference" \
   --k 5
 
 # Full L2 in one shot
-seekcontext retrieve \
+contextseek retrieve \
   --scope acme/proj/user \
   --query "language preference" \
   --k 3 \
   --full
 
 # Expand selected ids
-seekcontext expand --scope acme/proj/user --ids id1,id2
+contextseek expand --scope acme/proj/user --ids id1,id2
 
 # Maintenance
-seekcontext overview --scope acme/proj/user
-seekcontext compact --scope acme/proj/user
-seekcontext dream --scope acme/proj/user --dry-run
+contextseek overview --scope acme/proj/user
+contextseek compact --scope acme/proj/user
+contextseek dream --scope acme/proj/user --dry-run
 
-seekcontext forget --scope acme/proj/user --item-id abc123 --reason cleanup
-seekcontext delete --scope acme/proj/user --item-id abc123 --reason gdpr
+contextseek forget --scope acme/proj/user --item-id abc123 --reason cleanup
+contextseek delete --scope acme/proj/user --item-id abc123 --reason gdpr
 
 # Provenance
-seekcontext upstream --scope acme/proj/user --item-id abc123
-seekcontext evidence-chain --scope acme/proj/user --item-id abc123 --max-depth 8
+contextseek upstream --scope acme/proj/user --item-id abc123
+contextseek evidence-chain --scope acme/proj/user --item-id abc123 --max-depth 8
 ```
 
 CLI output is **JSON** on stdout for machine parsing.
@@ -91,7 +91,7 @@ CLI output is **JSON** on stdout for machine parsing.
 ### Programmatic CLI
 
 ```python
-from seekcontext.cli.main import run_cli
+from contextseek.cli.main import run_cli
 
 exit_code = run_cli(["retrieve", "--scope", "t/p/u", "--query", "test", "--k", "5"])
 ```
@@ -105,13 +105,13 @@ Pass `client=my_seek_context` to inject a test double.
 Install:
 
 ```bash
-pip install "seekcontext[http]"
+pip install "contextseek[http]"
 ```
 
 Run:
 
 ```bash
-uvicorn seekcontext.http.server:app --host 0.0.0.0 --port 8000
+uvicorn contextseek.http.server:app --host 0.0.0.0 --port 8000
 # Or: make demo-http  (127.0.0.1:8000 with reload)
 ```
 
@@ -185,10 +185,10 @@ curl -s http://localhost:8000/health
 ### Custom app embedding
 
 ```python
-from seekcontext import SeekContext
-from seekcontext.http.server import create_app
+from contextseek import ContextSeek
+from contextseek.http.server import create_app
 
-ctx = SeekContext.from_settings()
+ctx = ContextSeek.from_settings()
 app = create_app(client=ctx)
 ```
 
@@ -196,14 +196,14 @@ app = create_app(client=ctx)
 
 ## MCP server
 
-Model Context Protocol exposes SeekContext tools to hosts that speak JSON-RPC (Cursor, custom agents).
+Model Context Protocol exposes ContextSeek tools to hosts that speak JSON-RPC (Cursor, custom agents).
 
-Install: `pip install seekcontext` (HTTP extra optional for SSE transport).
+Install: `pip install contextseek` (HTTP extra optional for SSE transport).
 
 ### stdio (local IDE)
 
 ```bash
-seekcontext-mcp-stdio
+contextseek-mcp-stdio
 ```
 
 Configure in MCP client JSON (example):
@@ -211,11 +211,11 @@ Configure in MCP client JSON (example):
 ```json
 {
   "mcpServers": {
-    "seekcontext": {
-      "command": "seekcontext-mcp-stdio",
+    "contextseek": {
+      "command": "contextseek-mcp-stdio",
       "env": {
         "STORAGE_BACKEND": "file",
-        "STORAGE_PATH": "/path/to/.seekcontext/data"
+        "STORAGE_PATH": "/path/to/.contextseek/data"
       }
     }
   }
@@ -227,52 +227,52 @@ Environment variables are read the same way as the SDK (`.env` + MCP `env` block
 ### SSE (remote)
 
 ```bash
-seekcontext-mcp-sse --host 0.0.0.0 --port 8001
+contextseek-mcp-sse --host 0.0.0.0 --port 8001
 ```
 
-Requires `seekcontext[http]` (FastAPI). Clients connect to the SSE endpoint exposed by `MCPRuntime`.
+Requires `contextseek[http]` (FastAPI). Clients connect to the SSE endpoint exposed by `MCPRuntime`.
 
 ### MCP tools
 
 | Tool | SDK equivalent |
 |------|----------------|
-| `seekcontext_add` | `add()` |
-| `seekcontext_retrieve` | `retrieve()` (`k`, `full`) |
-| `seekcontext_expand` | `expand_by_ids()` |
-| `seekcontext_forget` | `forget()` |
-| `seekcontext_delete` | `delete()` |
-| `seekcontext_compact` | `compact()` |
-| `seekcontext_dream` | `dream()` |
-| `seekcontext_overview` | `overview()` |
-| `seekcontext_feedback` | `feedback()` |
-| `seekcontext_upstream` | `upstream()` |
-| `seekcontext_evidence_chain` | `evidence_chain()` |
-| `seekcontext_chain_confidence` | `chain_confidence()` |
-| `seekcontext_skill_tools` | `skill_tools()` |
-| `seekcontext_skill_context` | `skill_context()` |
-| `seekcontext_items` | `items()` |
+| `contextseek_add` | `add()` |
+| `contextseek_retrieve` | `retrieve()` (`k`, `full`) |
+| `contextseek_expand` | `expand_by_ids()` |
+| `contextseek_forget` | `forget()` |
+| `contextseek_delete` | `delete()` |
+| `contextseek_compact` | `compact()` |
+| `contextseek_dream` | `dream()` |
+| `contextseek_overview` | `overview()` |
+| `contextseek_feedback` | `feedback()` |
+| `contextseek_upstream` | `upstream()` |
+| `contextseek_evidence_chain` | `evidence_chain()` |
+| `contextseek_chain_confidence` | `chain_confidence()` |
+| `contextseek_skill_tools` | `skill_tools()` |
+| `contextseek_skill_context` | `skill_context()` |
+| `contextseek_items` | `items()` |
 
 ### Agent workflow with MCP
 
-1. `seekcontext_retrieve` with user question → summaries + ids in JSON.
-2. Model decides which ids need detail → `seekcontext_expand`.
-3. Optional: `seekcontext_feedback` on ids that helped.
-4. Periodic: `seekcontext_compact` on long-running scopes.
+1. `contextseek_retrieve` with user question → summaries + ids in JSON.
+2. Model decides which ids need detail → `contextseek_expand`.
+3. Optional: `contextseek_feedback` on ids that helped.
+4. Periodic: `contextseek_compact` on long-running scopes.
 
 ### Python embedding
 
 ```python
-from seekcontext import SeekContext
-from seekcontext.mcp.server import SeekContextMCPServer
-from seekcontext.mcp.runtime import MCPRuntime
+from contextseek import ContextSeek
+from contextseek.mcp.server import ContextSeekMCPServer
+from contextseek.mcp.runtime import MCPRuntime
 
-server = SeekContextMCPServer(client=SeekContext.from_settings())
+server = ContextSeekMCPServer(client=ContextSeek.from_settings())
 runtime = MCPRuntime(server=server)
 response = runtime.handle_request({
     "jsonrpc": "2.0",
     "id": 1,
     "method": "tools/call",
-    "params": {"name": "seekcontext_retrieve", "arguments": {"scope": "t/p/u", "query": "test"}},
+    "params": {"name": "contextseek_retrieve", "arguments": {"scope": "t/p/u", "query": "test"}},
 })
 ```
 

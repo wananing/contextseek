@@ -10,7 +10,7 @@ from full_pipeline_file import (
     file_backend_demo_stack,
     run_file_backend_demo,
 )
-from seekcontext.domain.stages import Stage
+from contextseek.domain.stages import Stage
 
 
 def test_run_file_backend_demo_summary(tmp_path: Path) -> None:

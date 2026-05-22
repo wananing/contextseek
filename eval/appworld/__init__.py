@@ -1,3 +1,3 @@
-"""AppWorld evaluation harness for SeekContext."""
+"""AppWorld evaluation harness for ContextSeek."""
 
 __all__ = []

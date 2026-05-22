@@ -1,29 +1,29 @@
 # API 参考
 
-所有公共方法均在同一个 `SeekContext` 对象上。构造一次实例后，所有操作共用同一个 adapter、audit log 与 strategy。
+所有公共方法均在同一个 `ContextSeek` 对象上。构造一次实例后，所有操作共用同一个 adapter、audit log 与 strategy。
 
 ```python
-from seekcontext import SeekContext
-ctx = SeekContext.from_settings()
+from contextseek import ContextSeek
+ctx = ContextSeek.from_settings()
 ```
 
 ---
 
 ## 构造
 
-### `SeekContext.from_settings(settings=None, *, _version="default")`
+### `ContextSeek.from_settings(settings=None, *, _version="default")`
 
-从环境变量、`.env` 文件或显式 `SeekContextSettings` 对象构造实例。
+从环境变量、`.env` 文件或显式 `ContextSeekSettings` 对象构造实例。
 
 ```python
 # 自动读取 .env / 环境变量
-ctx = SeekContext.from_settings()
+ctx = ContextSeek.from_settings()
 
 # 显式传入 settings
-from seekcontext import SeekContextSettings
-from seekcontext.config.settings import StorageSettings, EmbeddingSettings, LLMSettings
+from contextseek import ContextSeekSettings
+from contextseek.config.settings import StorageSettings, EmbeddingSettings, LLMSettings
 
-settings = SeekContextSettings(
+settings = ContextSeekSettings(
     storage=StorageSettings(backend="file", path="/data/ctx"),
     embedding=EmbeddingSettings(
         provider="langchain",
@@ -37,17 +37,17 @@ settings = SeekContextSettings(
         model="gpt-4o-mini",
     ),
 )
-ctx = SeekContext.from_settings(settings)
+ctx = ContextSeek.from_settings(settings)
 ```
 
 详见[配置](../getting-started/configuration.md)。
 
-### `SeekContext.from_runtime_config(path=None)`
+### `ContextSeek.from_runtime_config(path=None)`
 
 从 JSON/YAML 运行时配置文件构造，适用于服务端部署场景。
 
 ```python
-ctx = SeekContext.from_runtime_config("seekcontext.runtime.json")
+ctx = ContextSeek.from_runtime_config("contextseek.runtime.json")
 ```
 
 ---
@@ -84,8 +84,8 @@ ctx = SeekContext.from_runtime_config("seekcontext.runtime.json")
 **异常：** 若 scope 内已存在精确重复条目，抛出 `ValueError`。
 
 ```python
-from seekcontext.domain.provenance import SourceType
-from seekcontext.domain.stages import Stage
+from contextseek.domain.provenance import SourceType
+from contextseek.domain.stages import Stage
 
 item = ctx.add(
     "生产部署前必须通过集成测试。",
@@ -103,7 +103,7 @@ print(item.id, item.stage)
 挂载 `DataPlug` 并将其所有事件批量写入存储。
 
 ```python
-from seekcontext.plugs import RAGPlug
+from contextseek.plugs import RAGPlug
 
 ctx.plug(RAGPlug(results=my_rag_results), scope="acme/kb/general")
 ```
@@ -189,7 +189,7 @@ for spec in ctx.tools():
 返回 `root` 前缀下所有 scope 的层级视图，含各叶节点的 item/knowledge/skill 计数。`root=None` 时遍历全部 scope。
 
 ```python
-from seekcontext import ScopeBuilder
+from contextseek import ScopeBuilder
 
 tree = ctx.scope_tree(root="acme")
 tree.print()
@@ -425,7 +425,7 @@ print(result.output)
 
 ## 版本标签
 
-### `pin(version) → SeekContext`
+### `pin(version) → ContextSeek`
 
 返回带有不同 `policy_version` 标签的客户端副本。副本共享同一 adapter 和 strategy，仅审计记录的 `policy_version` 字段不同。适用于金丝雀/A-B 实验标注。
 

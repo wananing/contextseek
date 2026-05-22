@@ -6,18 +6,18 @@
 
 ## 安装
 
-### `ModuleNotFoundError: No module named 'seekcontext'`
+### `ModuleNotFoundError: No module named 'contextseek'`
 
 确认包已安装在当前 Python 环境中：
 
 ```bash
-pip show seekcontext
-python -c "from seekcontext import SeekContext"
+pip show contextseek
+python -c "from contextseek import ContextSeek"
 ```
 
 使用 `uv` 时：
 ```bash
-uv run python -c "from seekcontext import SeekContext"
+uv run python -c "from contextseek import ContextSeek"
 ```
 
 ### `ModuleNotFoundError: No module named 'langchain_openai'`
@@ -25,11 +25,11 @@ uv run python -c "from seekcontext import SeekContext"
 需要安装可选 extra：
 
 ```bash
-pip install "seekcontext[langchain,openai]"      # OpenAI
-pip install "seekcontext[langchain,ollama]"       # Ollama
-pip install "seekcontext[langchain,huggingface]"  # HuggingFace
-pip install "seekcontext[oceanbase]"              # OceanBase
-pip install "seekcontext[http]"                   # FastAPI 服务
+pip install "contextseek[langchain,openai]"      # OpenAI
+pip install "contextseek[langchain,ollama]"       # Ollama
+pip install "contextseek[langchain,huggingface]"  # HuggingFace
+pip install "contextseek[oceanbase]"              # OceanBase
+pip install "contextseek[http]"                   # FastAPI 服务
 ```
 
 ---
@@ -38,7 +38,7 @@ pip install "seekcontext[http]"                   # FastAPI 服务
 
 ### 没有从 `.env` 加载设置
 
-SeekContext 按以下顺序查找 `.env`：
+ContextSeek 按以下顺序查找 `.env`：
 1. `./`（当前工作目录）
 2. `{repo_root}/`
 3. `{repo_root}/examples/configs/`
@@ -47,17 +47,17 @@ SeekContext 按以下顺序查找 `.env`：
 从包含 `.env` 的目录运行脚本，或显式传入 settings：
 
 ```python
-from seekcontext import SeekContext, SeekContextSettings
-from seekcontext.config.settings import StorageSettings
+from contextseek import ContextSeek, ContextSeekSettings
+from contextseek.config.settings import StorageSettings
 
-ctx = SeekContext.from_settings(
-    SeekContextSettings(storage=StorageSettings(backend="file", path="/data/ctx"))
+ctx = ContextSeek.from_settings(
+    ContextSeekSettings(storage=StorageSettings(backend="file", path="/data/ctx"))
 )
 ```
 
 ### `OPENAI_API_KEY` 不生效
 
-SeekContext 不直接读取 API Key，由 LangChain 类读取。确保 Key 在环境中：
+ContextSeek 不直接读取 API Key，由 LangChain 类读取。确保 Key 在环境中：
 
 ```bash
 export OPENAI_API_KEY=sk-...
@@ -96,7 +96,7 @@ print(len(list(response)))
 
 ### `retrieve()` 返回 L2 正文而非摘要（并伴有警告）
 
-Summarizer 未配置。L1 字段为空，SeekContext 回退为 L2 模式。开启方式：
+Summarizer 未配置。L1 字段为空，ContextSeek 回退为 L2 模式。开启方式：
 
 ```env
 SUMMARIZER_PROVIDER=llm
@@ -150,13 +150,13 @@ scope 中已存在内容完全相同的条目。处理方式：
 ### 找不到 `uvicorn`
 
 ```bash
-pip install "seekcontext[http]"
-uvicorn seekcontext.http.server:app --port 8000
+pip install "contextseek[http]"
+uvicorn contextseek.http.server:app --port 8000
 ```
 
 ### 服务启动但 `/add` 返回 500
 
-检查服务日志。常见原因：存储路径不可写，或 Embedding 模型未配置。先在本地用 `SeekContext.from_settings()` 验证。
+检查服务日志。常见原因：存储路径不可写，或 Embedding 模型未配置。先在本地用 `ContextSeek.from_settings()` 验证。
 
 ---
 
@@ -164,11 +164,11 @@ uvicorn seekcontext.http.server:app --port 8000
 
 ### MCP 客户端无法连接 stdio 服务
 
-确认 `seekcontext-mcp-stdio` 命令已通过 pip 安装。验证：
+确认 `contextseek-mcp-stdio` 命令已通过 pip 安装。验证：
 
 ```bash
-which seekcontext-mcp-stdio
-seekcontext-mcp-stdio --help
+which contextseek-mcp-stdio
+contextseek-mcp-stdio --help
 ```
 
 ---
@@ -178,7 +178,7 @@ seekcontext-mcp-stdio --help
 ### 找不到 `pyobvector`
 
 ```bash
-pip install "seekcontext[oceanbase]"
+pip install "contextseek[oceanbase]"
 ```
 
 ### 连接被拒绝 / 超时
@@ -192,7 +192,7 @@ pip install "seekcontext[oceanbase]"
 **查看审计记录：**
 ```python
 import json
-with open(".seekcontext/audit.jsonl") as f:
+with open(".contextseek/audit.jsonl") as f:
     for line in f:
         rec = json.loads(line)
         if rec["status"] != "ok":
@@ -203,16 +203,16 @@ with open(".seekcontext/audit.jsonl") as f:
 ```python
 import logging
 logging.basicConfig(level=logging.DEBUG)
-ctx = SeekContext.from_settings()
+ctx = ContextSeek.from_settings()
 ```
 
 **检查 settings 实际加载值：**
 ```python
-from seekcontext.config.settings import SeekContextSettings
-s = SeekContextSettings()
+from contextseek.config.settings import ContextSeekSettings
+s = ContextSeekSettings()
 print(s.storage.backend, s.embedding.provider, s.llm.provider)
 ```
 
 ---
 
-[← 安装](getting-started/installation.md) · [配置](getting-started/configuration.md) · [GitHub Issues](https://github.com/ob-labs/seekcontext/issues)
+[← 安装](getting-started/installation.md) · [配置](getting-started/configuration.md) · [GitHub Issues](https://github.com/ob-labs/contextseek/issues)

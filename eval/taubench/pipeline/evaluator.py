@@ -202,7 +202,7 @@ def _generate_report(
     ctx = summary.get("context", {})
     if ctx.get("total_retrieved", 0) > 0:
         lines.extend([
-            "## SeekContext Metrics",
+            "## ContextSeek Metrics",
             "",
             f"| Metric | Value |",
             f"|--------|-------|",

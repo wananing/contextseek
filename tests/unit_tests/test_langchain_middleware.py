@@ -1,6 +1,6 @@
-"""Unit tests for ``SeekContextMiddleware``.
+"""Unit tests for ``ContextSeekMiddleware``.
 
-These tests do **not** spin up OceanBase. They mock SeekContext and
+These tests do **not** spin up OceanBase. They mock ContextSeek and
 validate the middleware contract: hook semantics, retrieval injection,
 storage gating, throttled compact, and helper correctness.
 """
@@ -18,8 +18,8 @@ pytest.importorskip("langchain_core", reason="langchain extra not installed")
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage  # noqa: E402
 
-from seekcontext.bridges.langchain.middleware import SeekContextMiddleware
-from seekcontext.domain.provenance import SourceType
+from contextseek.bridges.langchain.middleware import ContextSeekMiddleware
+from contextseek.domain.provenance import SourceType
 
 
 # ---------------------------------------------------------------------------
@@ -28,8 +28,8 @@ from seekcontext.domain.provenance import SourceType
 
 
 def _fake_ctx() -> MagicMock:
-    """A SeekContext mock with the API surface the middleware uses."""
-    ctx = MagicMock(name="SeekContext")
+    """A ContextSeek mock with the API surface the middleware uses."""
+    ctx = MagicMock(name="ContextSeek")
     ctx.retrieve.return_value = SimpleNamespace(items=[])
     ctx.add.return_value = None
     ctx.compact.return_value = None
@@ -72,7 +72,7 @@ def _make_request(
 class TestConstruction:
     def test_uses_injected_ctx(self) -> None:
         ctx = _fake_ctx()
-        mw = SeekContextMiddleware(
+        mw = ContextSeekMiddleware(
             ctx=ctx,
             retrieval_k=7,
             auto_store=False,
@@ -97,13 +97,13 @@ class TestConstruction:
 
 class TestBeforeAgent:
     def test_resolves_scope_from_thread_id(self) -> None:
-        mw = SeekContextMiddleware(ctx=_fake_ctx())
+        mw = ContextSeekMiddleware(ctx=_fake_ctx())
         runtime = SimpleNamespace(thread_id="t-1")
         assert mw.before_agent(state={"messages": []}, runtime=runtime) is None
         assert mw._current_scope() == "t-1"
 
     def test_keeps_explicit_scope(self) -> None:
-        mw = SeekContextMiddleware(ctx=_fake_ctx(), scope="explicit")
+        mw = ContextSeekMiddleware(ctx=_fake_ctx(), scope="explicit")
         runtime = SimpleNamespace(thread_id="t-1")
         mw.before_agent(state={"messages": []}, runtime=runtime)
         assert mw._current_scope() == "explicit"
@@ -111,7 +111,7 @@ class TestBeforeAgent:
         assert mw._scope == "explicit"
 
     def test_falls_back_to_default(self) -> None:
-        mw = SeekContextMiddleware(ctx=_fake_ctx())
+        mw = ContextSeekMiddleware(ctx=_fake_ctx())
         runtime = SimpleNamespace()  # no thread_id attr
         mw.before_agent(state={"messages": []}, runtime=runtime)
         assert mw._current_scope() == "default"
@@ -121,7 +121,7 @@ class TestBeforeAgent:
         must keep each context's scope separate (the core fix for issue 1)."""
         import contextvars
 
-        mw = SeekContextMiddleware(ctx=_fake_ctx())
+        mw = ContextSeekMiddleware(ctx=_fake_ctx())
         results: dict[str, str] = {}
         ready = threading.Barrier(2)
 
@@ -155,7 +155,7 @@ class TestBeforeAgent:
 class TestWrapModelCall:
     def test_no_user_message_skips_retrieval(self) -> None:
         ctx = _fake_ctx()
-        mw = SeekContextMiddleware(ctx=ctx, scope="s")
+        mw = ContextSeekMiddleware(ctx=ctx, scope="s")
         request = _make_request([])
         handler = MagicMock(return_value="response")
 
@@ -168,7 +168,7 @@ class TestWrapModelCall:
     def test_empty_retrieval_skips_override(self) -> None:
         ctx = _fake_ctx()
         ctx.retrieve.return_value = _retrieve_response()
-        mw = SeekContextMiddleware(ctx=ctx, scope="s")
+        mw = ContextSeekMiddleware(ctx=ctx, scope="s")
         request = _make_request([HumanMessage(content="question?")])
         handler = MagicMock(return_value="response")
 
@@ -184,7 +184,7 @@ class TestWrapModelCall:
         ctx.retrieve.return_value = _retrieve_response(
             _hit(summary="OB is fast"), _hit(abstract="vector + fts")
         )
-        mw = SeekContextMiddleware(ctx=ctx, scope="s", retrieval_k=3)
+        mw = ContextSeekMiddleware(ctx=ctx, scope="s", retrieval_k=3)
         request = _make_request(
             [HumanMessage(content="What is OB?")],
             system_message=SystemMessage(content="You are helpful."),
@@ -208,7 +208,7 @@ class TestWrapModelCall:
     def test_retrieval_failure_falls_back_to_handler(self) -> None:
         ctx = _fake_ctx()
         ctx.retrieve.side_effect = RuntimeError("OB down")
-        mw = SeekContextMiddleware(ctx=ctx, scope="s")
+        mw = ContextSeekMiddleware(ctx=ctx, scope="s")
         request = _make_request([HumanMessage(content="hi")])
         handler = MagicMock(return_value="response")
 
@@ -226,19 +226,19 @@ class TestWrapModelCall:
 class TestAfterModel:
     def test_auto_store_off_skips(self) -> None:
         ctx = _fake_ctx()
-        mw = SeekContextMiddleware(ctx=ctx, auto_store=False, scope="s")
+        mw = ContextSeekMiddleware(ctx=ctx, auto_store=False, scope="s")
         mw.after_model(state={"messages": [AIMessage(content="hello")]}, runtime=None)
         ctx.add.assert_not_called()
 
     def test_no_ai_message_skips(self) -> None:
         ctx = _fake_ctx()
-        mw = SeekContextMiddleware(ctx=ctx, scope="s")
+        mw = ContextSeekMiddleware(ctx=ctx, scope="s")
         mw.after_model(state={"messages": [HumanMessage(content="hi")]}, runtime=None)
         ctx.add.assert_not_called()
 
     def test_stores_with_correct_metadata(self) -> None:
         ctx = _fake_ctx()
-        mw = SeekContextMiddleware(ctx=ctx, scope="s")
+        mw = ContextSeekMiddleware(ctx=ctx, scope="s")
         mw.after_model(
             state={"messages": [HumanMessage(content="hi"), AIMessage(content="reply")]},
             runtime=None,
@@ -255,7 +255,7 @@ class TestAfterModel:
     def test_storage_failure_is_silent(self) -> None:
         ctx = _fake_ctx()
         ctx.add.side_effect = RuntimeError("disk full")
-        mw = SeekContextMiddleware(ctx=ctx, scope="s")
+        mw = ContextSeekMiddleware(ctx=ctx, scope="s")
         # Should not raise
         result = mw.after_model(
             state={"messages": [AIMessage(content="reply")]}, runtime=None
@@ -264,14 +264,14 @@ class TestAfterModel:
 
     def test_empty_ai_content_skips(self) -> None:
         ctx = _fake_ctx()
-        mw = SeekContextMiddleware(ctx=ctx, scope="s")
+        mw = ContextSeekMiddleware(ctx=ctx, scope="s")
         mw.after_model(state={"messages": [AIMessage(content="")]}, runtime=None)
         ctx.add.assert_not_called()
 
     def test_skip_when_no_human_message(self) -> None:
         """Issue 3: AI message without preceding HumanMessage must not be stored."""
         ctx = _fake_ctx()
-        mw = SeekContextMiddleware(ctx=ctx, scope="s")
+        mw = ContextSeekMiddleware(ctx=ctx, scope="s")
         mw.after_model(
             state={"messages": [AIMessage(content="hello, I'm an agent")]},
             runtime=None,
@@ -304,7 +304,7 @@ class TestWrapToolCall:
 
     def test_records_tool_message_as_string(self) -> None:
         ctx = _fake_ctx()
-        mw = SeekContextMiddleware(ctx=ctx, scope="s")
+        mw = ContextSeekMiddleware(ctx=ctx, scope="s")
         request = self._request()
         tool_msg = ToolMessage(content="OB is a database", tool_call_id="tc-1")
         handler = MagicMock(return_value=tool_msg)
@@ -327,7 +327,7 @@ class TestWrapToolCall:
 
     def test_handler_returning_plain_string(self) -> None:
         ctx = _fake_ctx()
-        mw = SeekContextMiddleware(ctx=ctx, scope="s")
+        mw = ContextSeekMiddleware(ctx=ctx, scope="s")
         request = self._request()
         handler = MagicMock(return_value="plain string result")
 
@@ -339,7 +339,7 @@ class TestWrapToolCall:
 
     def test_rationale_none_when_no_matching_tool_call(self) -> None:
         ctx = _fake_ctx()
-        mw = SeekContextMiddleware(ctx=ctx, scope="s")
+        mw = ContextSeekMiddleware(ctx=ctx, scope="s")
         # AIMessage has no tool_calls matching id
         messages = [
             HumanMessage(content="task"),
@@ -355,7 +355,7 @@ class TestWrapToolCall:
     def test_storage_failure_does_not_break_tool(self) -> None:
         ctx = _fake_ctx()
         ctx.add.side_effect = RuntimeError("oops")
-        mw = SeekContextMiddleware(ctx=ctx, scope="s")
+        mw = ContextSeekMiddleware(ctx=ctx, scope="s")
         request = self._request()
         handler = MagicMock(return_value="ok")
 
@@ -373,7 +373,7 @@ class TestWrapToolCall:
 class TestAfterAgent:
     def test_auto_compact_off_does_not_increment(self) -> None:
         ctx = _fake_ctx()
-        mw = SeekContextMiddleware(ctx=ctx, auto_compact=False, scope="s")
+        mw = ContextSeekMiddleware(ctx=ctx, auto_compact=False, scope="s")
         for _ in range(5):
             mw.after_agent(state={"messages": []}, runtime=None)
         assert mw._compact_counters == {}
@@ -385,7 +385,7 @@ class TestAfterAgent:
         compact_done = threading.Event()
         ctx.compact.side_effect = lambda **kw: compact_done.set()
 
-        mw = SeekContextMiddleware(
+        mw = ContextSeekMiddleware(
             ctx=ctx, auto_compact=True, compact_every=3, scope="s"
         )
 
@@ -417,7 +417,7 @@ class TestAfterAgent:
 
         ctx.compact.side_effect = slow_compact
 
-        mw = SeekContextMiddleware(
+        mw = ContextSeekMiddleware(
             ctx=ctx, auto_compact=True, compact_every=1, scope="s"
         )
 
@@ -450,7 +450,7 @@ class TestAfterAgent:
 
         ctx.compact.side_effect = slow_compact
 
-        mw = SeekContextMiddleware(
+        mw = ContextSeekMiddleware(
             ctx=ctx, auto_compact=True, compact_every=1, scope="s"
         )
         mw.after_agent(state={"messages": []}, runtime=None)
@@ -464,7 +464,7 @@ class TestAfterAgent:
     def test_after_shutdown_no_new_submission(self) -> None:
         """Submitting after shutdown drops the task and releases the lock."""
         ctx = _fake_ctx()
-        mw = SeekContextMiddleware(
+        mw = ContextSeekMiddleware(
             ctx=ctx, auto_compact=True, compact_every=1, scope="s"
         )
         mw.shutdown(wait=True)
@@ -484,24 +484,24 @@ class TestResolveVectorDims:
         settings = SimpleNamespace(dims=1024)
         embedder = MagicMock()
         embedder.embed_query.return_value = [0.0] * 384
-        assert SeekContextMiddleware._resolve_vector_dims(embedder, settings) == 1024
+        assert ContextSeekMiddleware._resolve_vector_dims(embedder, settings) == 1024
         embedder.embed_query.assert_not_called()
 
     def test_probe_when_settings_zero(self) -> None:
         settings = SimpleNamespace(dims=0)
         embedder = MagicMock()
         embedder.embed_query.return_value = [0.0] * 384
-        assert SeekContextMiddleware._resolve_vector_dims(embedder, settings) == 384
+        assert ContextSeekMiddleware._resolve_vector_dims(embedder, settings) == 384
 
     def test_fallback_when_no_embedder(self) -> None:
         settings = SimpleNamespace(dims=0)
-        assert SeekContextMiddleware._resolve_vector_dims(None, settings) == 1536
+        assert ContextSeekMiddleware._resolve_vector_dims(None, settings) == 1536
 
     def test_fallback_when_probe_fails(self) -> None:
         settings = SimpleNamespace(dims=0)
         embedder = MagicMock()
         embedder.embed_query.side_effect = RuntimeError("network down")
-        assert SeekContextMiddleware._resolve_vector_dims(embedder, settings) == 1536
+        assert ContextSeekMiddleware._resolve_vector_dims(embedder, settings) == 1536
 
 
 # ---------------------------------------------------------------------------
@@ -516,15 +516,15 @@ class TestHelpers:
             AIMessage(content="reply"),
             HumanMessage(content="second"),
         ]
-        assert SeekContextMiddleware._last_user_text(msgs) == "second"
+        assert ContextSeekMiddleware._last_user_text(msgs) == "second"
 
     def test_last_user_text_none_when_empty(self) -> None:
-        assert SeekContextMiddleware._last_user_text([]) is None
+        assert ContextSeekMiddleware._last_user_text([]) is None
 
     def test_last_ai_message(self) -> None:
         ai = AIMessage(content="hi")
         msgs = [HumanMessage(content="q"), ai, HumanMessage(content="next")]
-        assert SeekContextMiddleware._last_ai_message(msgs) is ai
+        assert ContextSeekMiddleware._last_ai_message(msgs) is ai
 
     def test_reasoning_truncates_long_content(self) -> None:
         long = "x" * 5000
@@ -534,7 +534,7 @@ class TestHelpers:
                 tool_calls=[{"name": "t", "args": {}, "id": "abc"}],
             ),
         ]
-        result = SeekContextMiddleware._reasoning_for_tool_call(msgs, "abc", max_chars=100)
+        result = ContextSeekMiddleware._reasoning_for_tool_call(msgs, "abc", max_chars=100)
         assert result is not None
         assert len(result) == 100
 
@@ -545,36 +545,36 @@ class TestHelpers:
                 tool_calls=[{"name": "t", "args": {}, "id": "abc"}],
             ),
         ]
-        assert SeekContextMiddleware._reasoning_for_tool_call(msgs, "different-id") is None
+        assert ContextSeekMiddleware._reasoning_for_tool_call(msgs, "different-id") is None
 
     def test_append_to_system_creates_when_none(self) -> None:
-        result = SeekContextMiddleware._append_to_system(None, "[ctx]")
+        result = ContextSeekMiddleware._append_to_system(None, "[ctx]")
         assert isinstance(result, SystemMessage)
         assert result.content == "[ctx]"
 
     def test_append_to_system_str_concat(self) -> None:
         existing = SystemMessage(content="base")
-        result = SeekContextMiddleware._append_to_system(existing, "[ctx]")
+        result = ContextSeekMiddleware._append_to_system(existing, "[ctx]")
         assert result.content == "base\n[ctx]"
 
     def test_append_to_system_content_blocks(self) -> None:
         existing = SystemMessage(content=[{"type": "text", "text": "hi"}])
-        result = SeekContextMiddleware._append_to_system(existing, "[ctx]")
+        result = ContextSeekMiddleware._append_to_system(existing, "[ctx]")
         assert isinstance(result.content, list)
         assert len(result.content) == 2
         assert result.content[-1] == {"type": "text", "text": "[ctx]"}
 
     def test_stringify_tool_result_for_message(self) -> None:
         msg = ToolMessage(content="hello", tool_call_id="x")
-        assert SeekContextMiddleware._stringify_tool_result(msg) == "hello"
+        assert ContextSeekMiddleware._stringify_tool_result(msg) == "hello"
 
     def test_stringify_tool_result_for_plain(self) -> None:
-        assert SeekContextMiddleware._stringify_tool_result("raw") == "raw"
-        assert SeekContextMiddleware._stringify_tool_result(None) == ""
+        assert ContextSeekMiddleware._stringify_tool_result("raw") == "raw"
+        assert ContextSeekMiddleware._stringify_tool_result(None) == ""
 
     def test_stringify_tool_result_for_list_content(self) -> None:
         msg = ToolMessage(content=[{"type": "text", "text": "a"}], tool_call_id="x")
-        result = SeekContextMiddleware._stringify_tool_result(msg)
+        result = ContextSeekMiddleware._stringify_tool_result(msg)
         assert isinstance(result, str)
         assert "a" in result
 
@@ -599,7 +599,7 @@ class TestAsyncWrappers:
 
         ctx.add.side_effect = slow_add
 
-        mw = SeekContextMiddleware(ctx=ctx, scope="s")
+        mw = ContextSeekMiddleware(ctx=ctx, scope="s")
         state = {
             "messages": [HumanMessage(content="q"), AIMessage(content="a")]
         }
@@ -619,7 +619,7 @@ class TestAsyncWrappers:
     def test_aafter_model_propagates_scope_to_thread(self) -> None:
         """``ContextVar`` set by ``before_agent`` must reach the worker thread."""
         ctx = _fake_ctx()
-        mw = SeekContextMiddleware(ctx=ctx)
+        mw = ContextSeekMiddleware(ctx=ctx)
         # Constructor scope=None; before_agent sets the per-task scope.
 
         async def runner():
@@ -644,7 +644,7 @@ class TestAsyncWrappers:
 
     def test_awrap_tool_call_offloads_record(self) -> None:
         ctx = _fake_ctx()
-        mw = SeekContextMiddleware(ctx=ctx, scope="s")
+        mw = ContextSeekMiddleware(ctx=ctx, scope="s")
 
         request = SimpleNamespace(
             tool=SimpleNamespace(name="search"),

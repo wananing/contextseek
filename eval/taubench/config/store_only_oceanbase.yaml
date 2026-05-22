@@ -6,7 +6,7 @@ domain: airline
 task_split: base
 max_tasks: 0
 num_trials: 1
-adapter: seekcontext_store_only
+adapter: contextseek_store_only
 seed: 42
 resume: true
 output_dir: ./output/taubench/store_only_oceanbase
@@ -17,7 +17,7 @@ agent:
   temperature: 0.0
   max_steps: 100
 
-seekcontext:
+contextseek:
   enabled: true
   scope: taubench/airline/shared/oceanbase
   store_only: true
@@ -32,7 +32,7 @@ seekcontext:
       user: ${OB_USER}
       password: ${OB_PASSWORD}
       db_name: ${OB_DB_NAME}
-      table_name: seekcontext_taubench_store_only
+      table_name: contextseek_taubench_store_only
       vector_dims: 1024
       fulltext_parser: ngram
       metric: cosine
@@ -70,7 +70,7 @@ seekcontext:
     extract_min_age_seconds: 0
   observability:
     audit_enabled: true
-    audit_path: .seekcontext/taubench_ob_audit.jsonl
+    audit_path: .contextseek/taubench_ob_audit.jsonl
 
 distill:
   import_policy_doc: true

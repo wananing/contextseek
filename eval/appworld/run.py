@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI for the SeekContext AppWorld evaluation pipeline."""
+"""CLI for the ContextSeek AppWorld evaluation pipeline."""
 
 from __future__ import annotations
 
@@ -28,11 +28,11 @@ def _parse_stages(value: str) -> list[str]:
 
 def _merged_agent_config(config: dict[str, Any], base_dir: Path) -> dict[str, Any]:
     agent_cfg: dict[str, Any] = {**config.get("agent", {})}
-    agent_cfg["experiment_name"] = config.get("experiment_name", "seekcontext_eval")
+    agent_cfg["experiment_name"] = config.get("experiment_name", "contextseek_eval")
     agent_cfg["dataset"] = config.get("dataset", "dev")
     agent_cfg["output_dir"] = str(base_dir)
-    if "seekcontext" in config:
-        agent_cfg["seekcontext"] = config["seekcontext"]
+    if "contextseek" in config:
+        agent_cfg["contextseek"] = config["contextseek"]
     if "appworld" in config:
         agent_cfg.update(config["appworld"])
     return agent_cfg
@@ -50,7 +50,7 @@ def _appworld_python(config: dict[str, Any]) -> str | None:
 def run_pipeline(config: dict[str, Any], stages: list[str]) -> None:
     """Execute selected pipeline stages."""
     output_dir = Path(config.get("output_dir", "./output"))
-    experiment_name = config.get("experiment_name", "seekcontext_eval")
+    experiment_name = config.get("experiment_name", "contextseek_eval")
     base_dir = output_dir / experiment_name
     trajectories_dir = base_dir / "trajectories"
     evaluate_dir = base_dir / "evaluate"
@@ -69,7 +69,7 @@ def run_pipeline(config: dict[str, Any], stages: list[str]) -> None:
 
     if "run" in stages:
         agent_cfg = _merged_agent_config(config, base_dir)
-        adapter_name = agent_cfg.get("type", "seekcontext_react")
+        adapter_name = agent_cfg.get("type", "contextseek_react")
         adapter = get_adapter_class(adapter_name)()
         adapter.configure(agent_cfg)
         print(f"\n=== Stage: run ({adapter.name}) ===")

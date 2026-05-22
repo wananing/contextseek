@@ -1,7 +1,7 @@
 """Unit tests for PowerMemPlug."""
 
-from seekcontext import SeekContext
-from seekcontext.plugs import PowerMemPlug
+from contextseek import ContextSeek
+from contextseek.plugs import PowerMemPlug
 
 
 class _FakeMemory:
@@ -14,7 +14,7 @@ class _FakeMemory:
 
 
 def test_from_memory_plug_flow() -> None:
-    ctx = SeekContext()
+    ctx = ContextSeek()
     scope = "t/u/a"
     plug = PowerMemPlug.from_memory(_FakeMemory(), user_id="u", agent_id="a")
     assert len(plug.entries) == 1

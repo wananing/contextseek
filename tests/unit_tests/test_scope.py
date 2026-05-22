@@ -4,7 +4,7 @@ import warnings
 
 import pytest
 
-from seekcontext.scope import (
+from contextseek.scope import (
     ScopeBuilder,
     ScopeLintWarning,
     ScopeTemplates,
@@ -126,9 +126,9 @@ class TestLint:
 
 class TestScopeLintInCtx:
     def test_lint_warning_emitted_on_add(self):
-        from seekcontext.client.seekcontext import SeekContext
+        from contextseek.client.contextseek import ContextSeek
 
-        ctx = SeekContext(_scope_lint=True)
+        ctx = ContextSeek(_scope_lint=True)
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             ctx.add("hello", scope="flat", source="test")
@@ -137,9 +137,9 @@ class TestScopeLintInCtx:
         assert lint_warnings, "expected at least one ScopeLintWarning for flat scope"
 
     def test_no_lint_warning_by_default(self):
-        from seekcontext.client.seekcontext import SeekContext
+        from contextseek.client.contextseek import ContextSeek
 
-        ctx = SeekContext()
+        ctx = ContextSeek()
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             ctx.add("hello", scope="flat", source="test")
@@ -148,9 +148,9 @@ class TestScopeLintInCtx:
         assert not lint_warnings
 
     def test_no_warning_for_good_scope(self):
-        from seekcontext.client.seekcontext import SeekContext
+        from contextseek.client.contextseek import ContextSeek
 
-        ctx = SeekContext(_scope_lint=True)
+        ctx = ContextSeek(_scope_lint=True)
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             ctx.add("hello", scope="acme/payment/agent", source="test")
@@ -161,9 +161,9 @@ class TestScopeLintInCtx:
 
 class TestScopeTreeAndStats:
     def _make_ctx(self):
-        from seekcontext.client.seekcontext import SeekContext
+        from contextseek.client.contextseek import ContextSeek
 
-        ctx = SeekContext()
+        ctx = ContextSeek()
         ctx.add("raw content", scope="acme/pay/agent", source="test")
         ctx.add("more content", scope="acme/pay/agent", source="test")
         ctx.add("auth content", scope="acme/auth/agent", source="test")
@@ -181,9 +181,9 @@ class TestScopeTreeAndStats:
         assert sum(stats.stage_distribution.values()) == stats.item_count
 
     def test_scope_stats_empty_scope(self):
-        from seekcontext.client.seekcontext import SeekContext
+        from contextseek.client.contextseek import ContextSeek
 
-        ctx = SeekContext()
+        ctx = ContextSeek()
         stats = ctx.scope_stats("nonexistent/scope")
         assert stats.item_count == 0
         assert stats.avg_confidence == 0.0

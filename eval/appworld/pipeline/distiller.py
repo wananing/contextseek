@@ -1,4 +1,4 @@
-"""Pipeline stage: distill reusable AppWorld knowledge into SeekContext."""
+"""Pipeline stage: distill reusable AppWorld knowledge into ContextSeek."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ import re
 from pathlib import Path
 from typing import Any
 
-from seekcontext import Stage
+from contextseek import Stage
 
-from ..adapters.seekcontext_react import build_scope
-from ..context import SeekContextClient
+from ..adapters.contextseek_react import build_scope
+from ..context import ContextSeekClient
 
 
 _API_CALL_RE = re.compile(r"apis\.([a-zA-Z_][\w]*)\.([a-zA-Z_][\w]*)")
@@ -117,23 +117,23 @@ def distill_stage(
     output_dir: Path,
     config: dict[str, Any],
 ) -> dict[str, str]:
-    """Distill trajectory JSONL into SeekContext knowledge items."""
+    """Distill trajectory JSONL into ContextSeek knowledge items."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    seek_cfg = config.get("seekcontext", {})
+    seek_cfg = config.get("contextseek", {})
     if not seek_cfg.get("enabled", True):
-        message = "skipped (seekcontext.enabled=false)"
+        message = "skipped (contextseek.enabled=false)"
         (output_dir / "distill.log").write_text(message + "\n", encoding="utf-8")
-        return {"seekcontext": message}
+        return {"contextseek": message}
 
     scope = build_scope(
         {
             **config.get("agent", {}),
-            "seekcontext": seek_cfg,
-            "experiment_name": config.get("experiment_name", "seekcontext_eval"),
+            "contextseek": seek_cfg,
+            "experiment_name": config.get("experiment_name", "contextseek_eval"),
             "dataset": config.get("dataset", "dev"),
         }
     )
-    seekcontext = SeekContextClient.from_config(seek_cfg, scope=scope)
+    contextseek = ContextSeekClient.from_config(seek_cfg, scope=scope)
     max_records = config.get("distill", {}).get("max_records")
     compact_after = config.get("distill", {}).get("compact_after", True)
 
@@ -147,7 +147,7 @@ def distill_stage(
         for record in records:
             for exp in _heuristic_experiences(record):
                 stage = Stage(exp.get("stage", "knowledge"))
-                seekcontext.store_experience(
+                contextseek.store_experience(
                     title=exp["title"],
                     content=exp["content"],
                     source=f"appworld_distill:{record.get('task_id', 'unknown')}",
@@ -159,7 +159,7 @@ def distill_stage(
         total_stored += stored
         status[path.stem] = f"stored {stored} distilled items"
 
-    compact_report = seekcontext.compact() if compact_after else {}
+    compact_report = contextseek.compact() if compact_after else {}
     log_lines = [f"{name}: {message}" for name, message in status.items()]
     log_lines.append(f"total_stored: {total_stored}")
     if compact_report:

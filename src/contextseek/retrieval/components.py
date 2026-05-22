@@ -1,0 +1,323 @@
+"""Pluggable retrieval pipeline components."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Callable
+from typing import Protocol
+import re
+
+from contextseek.storage.protocol import SeekVFSAdapter
+from contextseek.config import RetrievalStrategy
+
+
+_TOKEN_RE = re.compile(r"[\w\u4e00-\u9fff]+", re.UNICODE)
+
+# Embedder is a callable that converts a text string to a float vector.
+Embedder = Callable[[str], list[float]]
+
+
+def tokens(text: str) -> list[str]:
+    """Return normalized query/content tokens for lightweight local ranking."""
+    return [item.lower() for item in _TOKEN_RE.findall(text) if item.strip()]
+
+
+@dataclass(frozen=True)
+class RecallQuery:
+    """One backend query emitted by a recall route."""
+
+    route_name: str
+    query: str
+
+
+class RecallRoute(Protocol):
+    """Build and execute backend recall routes."""
+
+    def build_queries(self, query: str, strategy: RetrievalStrategy) -> list[RecallQuery]:
+        """Return one or more backend queries for a user query."""
+
+    def recall(
+        self,
+        adapter: SeekVFSAdapter,
+        *,
+        prefix: str,
+        recall_query: RecallQuery,
+        k: int,
+    ) -> list[dict[str, object]]:
+        """Return raw backend payloads for one recall query."""
+
+
+class Reranker(Protocol):
+    """Rerank recalled payloads after dedupe."""
+
+    def rerank(
+        self,
+        candidates: list[dict[str, object]],
+        *,
+        query: str,
+        strategy: RetrievalStrategy,
+    ) -> list[dict[str, object]]:
+        """Return candidates ordered by relevance."""
+
+
+class DefaultRecallRoute:
+    """Default phrase + token recall route over the VFS search API."""
+
+    def build_queries(self, query: str, strategy: RetrievalStrategy) -> list[RecallQuery]:
+        cleaned = query.strip()
+        if not cleaned:
+            return []
+        routes: list[RecallQuery] = []
+        enabled = set(strategy.recall_routes)
+        if "phrase" in enabled:
+            routes.append(RecallQuery("phrase", cleaned))
+        if "terms" in enabled:
+            seen = {cleaned.lower()}
+            for token in tokens(cleaned):
+                if token not in seen:
+                    routes.append(RecallQuery("term", token))
+                    seen.add(token)
+        return routes
+
+    def recall(
+        self,
+        adapter: SeekVFSAdapter,
+        *,
+        prefix: str,
+        recall_query: RecallQuery,
+        k: int,
+    ) -> list[dict[str, object]]:
+        return adapter.search(prefix, recall_query.query, k=k)
+
+
+class VectorRecallRoute:
+    """Vector similarity recall route using an embedder callable.
+
+    Requires the adapter to implement ``vector_search(prefix, vector, k)``.
+    Falls back to an empty result list if the adapter does not support it,
+    so it is safe to enable this route on non-vector backends (the phrase/terms
+    routes will still return results).
+    """
+
+    def __init__(self, embedder: Embedder) -> None:
+        self._embedder = embedder
+
+    def build_queries(self, query: str, strategy: RetrievalStrategy) -> list[RecallQuery]:
+        cleaned = query.strip()
+        if not cleaned or "vector" not in set(strategy.recall_routes):
+            return []
+        return [RecallQuery("vector", cleaned)]
+
+    def recall(
+        self,
+        adapter: SeekVFSAdapter,
+        *,
+        prefix: str,
+        recall_query: RecallQuery,
+        k: int,
+    ) -> list[dict[str, object]]:
+        try:
+            query_vector = self._embedder(recall_query.query)
+        except Exception:  # noqa: BLE001  # embedder errors must not crash the pipeline
+            return []
+        # Route through search() with query_embedding so ANN-capable backends can hybrid-recall.
+        return adapter.search(
+            prefix,
+            recall_query.query,
+            k=k,
+            query_embedding=query_vector,
+        )
+
+
+class HybridRecallRoute:
+    """Combines DefaultRecallRoute (phrase/terms) with VectorRecallRoute.
+
+    All sub-routes are executed; results are merged by the orchestrator.
+    """
+
+    def __init__(self, embedder: Embedder) -> None:
+        self._text_route = DefaultRecallRoute()
+        self._vector_route = VectorRecallRoute(embedder)
+
+    def build_queries(self, query: str, strategy: RetrievalStrategy) -> list[RecallQuery]:
+        return self._text_route.build_queries(
+            query, strategy
+        ) + self._vector_route.build_queries(query, strategy)
+
+    def recall(
+        self,
+        adapter: SeekVFSAdapter,
+        *,
+        prefix: str,
+        recall_query: RecallQuery,
+        k: int,
+    ) -> list[dict[str, object]]:
+        if recall_query.route_name == "vector":
+            return self._vector_route.recall(adapter, prefix=prefix, recall_query=recall_query, k=k)
+        return self._text_route.recall(adapter, prefix=prefix, recall_query=recall_query, k=k)
+
+
+class HeuristicReranker:
+    """Local reranker using backend score, token overlap, evidence and feedback."""
+
+    def rerank(
+        self,
+        candidates: list[dict[str, object]],
+        *,
+        query: str,
+        strategy: RetrievalStrategy,
+    ) -> list[dict[str, object]]:
+        for item in candidates:
+            item["_score"] = self.rank_score(item, query=query, strategy=strategy)
+        return sorted(
+            candidates,
+            key=lambda item: float(item.get("_score", 0.0)),
+            reverse=True,
+        )
+
+    @staticmethod
+    def rank_score(
+        item: dict[str, object], *, query: str, strategy: RetrievalStrategy
+    ) -> float:
+        base = float(item.get("score", 0.0))
+        query_tokens = set(tokens(query))
+        content_tokens = set(tokens(_content_for_score(item)))
+        if query_tokens:
+            overlap = len(query_tokens & content_tokens) / len(query_tokens)
+            base += overlap * strategy.term_weight
+        if item.get("evidence_id"):
+            base += strategy.evidence_weight
+        try:
+            feedback_score = float(item.get("feedback_score", 0.0))
+        except (TypeError, ValueError):
+            feedback_score = 0.0
+        base += feedback_score * strategy.feedback_weight
+        # Phase 3: boost by evidence quality score
+        try:
+            quality_score = float(item.get("quality_score") or 0.0)
+        except (TypeError, ValueError):
+            quality_score = 0.0
+        if quality_score > 0.0:
+            base += quality_score * strategy.evidence_quality_weight
+        # Phase 3: penalise items flagged as conflicting
+        conflict_with = item.get("conflict_with")
+        if isinstance(conflict_with, list) and conflict_with:
+            base *= max(0.0, 1.0 - strategy.conflict_penalty)
+        tier = str(item.get("tier", "")).lower()
+        if item.get("is_archived") or tier == "cold":
+            base *= max(0.0, 1.0 - strategy.archive_penalty)
+        elif tier == "warm":
+            base *= max(0.0, 1.0 - strategy.archive_penalty / 2)
+        return round(base, 6)
+
+
+class LLMReranker:
+    """LLM-based reranker that delegates relevance scoring to an external callable.
+
+    The ``score_fn`` receives the query and a candidate's content string,
+    and returns a relevance score in [0.0, 1.0].  Candidates are then sorted by
+    the returned score.
+
+    Falls back gracefully: if ``score_fn`` raises an exception for a candidate,
+    that candidate keeps its original score from the upstream reranker.
+
+    Usage::
+
+        async def my_llm_score(query: str, content: str) -> float:
+            resp = await llm.score(query=query, passage=content)
+            return resp.relevance
+
+        reranker = LLMReranker(score_fn=my_llm_score)
+    """
+
+    def __init__(
+        self,
+        score_fn: Callable[[str, str], float],
+        *,
+        inner: Reranker | None = None,
+        top_n: int | None = None,
+    ) -> None:
+        self._score_fn = score_fn
+        self._inner = inner or HeuristicReranker()
+        self._top_n = top_n
+
+    def rerank(
+        self,
+        candidates: list[dict[str, object]],
+        *,
+        query: str,
+        strategy: RetrievalStrategy,
+    ) -> list[dict[str, object]]:
+        # First pass: use inner reranker to pre-sort and reduce candidate set
+        pre_ranked = self._inner.rerank(candidates, query=query, strategy=strategy)
+        # Limit LLM calls to top_n candidates if configured
+        to_score = pre_ranked[: self._top_n] if self._top_n else pre_ranked
+        remainder = pre_ranked[self._top_n:] if self._top_n else []
+        for item in to_score:
+            content = str(item.get("content", ""))
+            try:
+                llm_score = self._score_fn(query, content)
+                item["_score"] = round(float(llm_score), 6)
+            except Exception:  # noqa: BLE001
+                pass  # keep existing _score from inner reranker
+        scored = sorted(
+            to_score,
+            key=lambda item: float(item.get("_score", 0.0)),
+            reverse=True,
+        )
+        return scored + remainder
+
+
+class RelationAwareReranker:
+    """Reranker that applies relation-based boosts and penalties.
+
+    Wraps an inner reranker (defaults to ``HeuristicReranker``) and adjusts
+    scores based on relation metadata present on candidate items:
+
+    - Items with ``relation_type == "supports"`` get a score boost.
+    - Items with ``relation_type == "refutes"`` get a penalty.
+    - Items with ``relation_type == "supersedes"`` (i.e. the item is superseded) get a penalty.
+    """
+
+    def __init__(self, inner: Reranker | None = None) -> None:
+        self._inner = inner or HeuristicReranker()
+
+    def rerank(
+        self,
+        candidates: list[dict[str, object]],
+        *,
+        query: str,
+        strategy: RetrievalStrategy,
+    ) -> list[dict[str, object]]:
+        ranked = self._inner.rerank(candidates, query=query, strategy=strategy)
+        for item in ranked:
+            score = float(item.get("_score", 0.0))
+            relation_type = str(item.get("relation_type", "")).lower()
+            if relation_type == "supports":
+                score += strategy.link_boost
+            elif relation_type == "refutes":
+                score *= max(0.0, 1.0 - strategy.link_refute_penalty)
+            elif relation_type in ("supersedes", "superseded", "expired"):
+                score *= max(0.0, 1.0 - strategy.link_supersede_penalty)
+            # Apply namespace weight if configured
+            ns_weights = dict(strategy.namespace_weights)
+            ref = str(item.get("ref", ""))
+            for ns_prefix, weight in ns_weights.items():
+                if ns_prefix in ref:
+                    score *= weight
+                    break
+            item["_score"] = round(score, 6)
+        return sorted(
+            ranked,
+            key=lambda item: float(item.get("_score", 0.0)),
+            reverse=True,
+        )
+
+
+def _content_for_score(item: dict[str, object]) -> str:
+    parts = [
+        str(item.get("content", "")),
+        str(item.get("source_meta", "")),
+        str(item.get("tags", "")),
+    ]
+    return " ".join(parts).lower()

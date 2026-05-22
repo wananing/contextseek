@@ -1,8 +1,8 @@
 # DataPlug（数据源）
 
-**DataPlug** 通过统一 API `SeekContext.plug()` 把**外部数据源**导入 SeekContext。导入后每条记录都是 `ContextItem`——按 `stage` 使用 `retrieve()`、`provenance` 与 `compact()` 等能力。
+**DataPlug** 通过统一 API `ContextSeek.plug()` 把**外部数据源**导入 ContextSeek。导入后每条记录都是 `ContextItem`——按 `stage` 使用 `retrieve()`、`provenance` 与 `compact()` 等能力。
 
-**`seekcontext.plugs` 内置：**
+**`contextseek.plugs` 内置：**
 
 | 数据源类型 | 类 | 典型 `stage` | 主要读取方式 |
 |------------|-----|--------------|--------------|
@@ -13,10 +13,10 @@
 
 | 适用 | 不适用 |
 |------|--------|
-| RAG、记忆、轨迹、技能（`seekcontext.plugs`） | Agent 框架 桥接（`bridges/langchain`、`bridges/deepagents`） |
+| RAG、记忆、轨迹、技能（`contextseek.plugs`） | Agent 框架 桥接（`bridges/langchain`、`bridges/deepagents`） |
 | — | Harness 内逐轮对话适配 |
 
-技能实现在 `plugs/skills/`，并从 `seekcontext.plugs` 再导出。见 [技能导入](#技能导入-plugsskills)。
+技能实现在 `plugs/skills/`，并从 `contextseek.plugs` 再导出。见 [技能导入](#技能导入-plugsskills)。
 
 Agent 编排留在 Harness；**文档、记忆、轨迹、技能**用 plug 或 `add()` 写入。
 
@@ -26,7 +26,7 @@ Agent 编排留在 Harness；**文档、记忆、轨迹、技能**用 plug 或 `
 
 ```python
 from collections.abc import Iterator
-from seekcontext.protocols.plugs import DataPlug, PlugMeta, RawEvent
+from contextseek.protocols.plugs import DataPlug, PlugMeta, RawEvent
 
 class MyWikiPlug:
     def metadata(self) -> PlugMeta:
@@ -68,10 +68,10 @@ ctx.plug(source: DataPlug, *, scope: str | None = None)
 4. 与手动 `add()` 相同管线（摘要、嵌入、冲突检测）
 
 ```python
-from seekcontext import SeekContext
-from seekcontext.plugs import RAGPlug
+from contextseek import ContextSeek
+from contextseek.plugs import RAGPlug
 
-ctx = SeekContext.from_settings()
+ctx = ContextSeek.from_settings()
 scope = "acme/kb/imports"
 
 ctx.plug(rag_plug, scope=scope)
@@ -85,7 +85,7 @@ hits = ctx.retrieve("回滚步骤", scope=scope, k=10)
 把向量库、搜索 API 或 RAG 管道的 chunk 导入，进入演进路径（`raw` → `knowledge`），并支持 `feedback()`。
 
 ```python
-from seekcontext.plugs import RAGPlug
+from contextseek.plugs import RAGPlug
 
 docs = vectorstore.similarity_search("部署检查清单", k=10)
 payload = [
@@ -116,12 +116,12 @@ ctx.plug(RAGPlug(documents=payload), scope="acme/rag/deploy")
 
 ## PowerMemPlug — 记忆库
 
-从 [PowerMem](https://github.com/oceanbase/powermem) 或兼容 API 导入，不替换原系统，SeekContext 作为统一召回层。
+从 [PowerMem](https://github.com/oceanbase/powermem) 或兼容 API 导入，不替换原系统，ContextSeek 作为统一召回层。
 
 ### 在线 store
 
 ```python
-from seekcontext.plugs import PowerMemPlug
+from contextseek.plugs import PowerMemPlug
 
 plug = PowerMemPlug.from_memory(
     memory,
@@ -157,7 +157,7 @@ ctx.plug(plug, scope="acme/bot/user-42")
 批量导入 **执行轨迹**（Agent 运行、工具循环、作业日志），作为结构化 `raw` 供抽取与演进。
 
 ```python
-from seekcontext.plugs import TracePlug
+from contextseek.plugs import TracePlug
 
 ctx.plug(
     TracePlug(traces=[
@@ -198,18 +198,18 @@ ctx.plug(
 技能与工具定义写入 **`stage=skill`**，与 RAG/记忆/轨迹一样走 `plug()`。
 
 ```bash
-seekcontext skill-import --scope acme/bot/skills --format hermes --path ~/.hermes/skills
-seekcontext skill-import --scope acme/bot/skills --format openai --path tools.json
-seekcontext skill-import --scope acme/bot/skills --format mcp --path mcp-tools.json
+contextseek skill-import --scope acme/bot/skills --format hermes --path ~/.hermes/skills
+contextseek skill-import --scope acme/bot/skills --format openai --path tools.json
+contextseek skill-import --scope acme/bot/skills --format mcp --path mcp-tools.json
 ```
 
 ```python
-from seekcontext.plugs import HermesSkillImporter
+from contextseek.plugs import HermesSkillImporter
 
 ctx.plug(HermesSkillImporter("~/.hermes/skills"), scope="acme/bot/skills")
 ```
 
-（也可 `from seekcontext.plugs.skills import …`。）
+（也可 `from contextseek.plugs.skills import …`。）
 
 | Importer | 格式 |
 |----------|------|
@@ -241,7 +241,7 @@ flowchart LR
 ctx.add("官方 SLA：4 小时", scope=scope, source="wiki/sla", tags=["kb"])
 ctx.plug(PowerMemPlug.from_records(mem_rows), scope=scope)
 ctx.plug(RAGPlug(documents=chunks), scope=scope)
-# 技能：CLI skill-import 或 from seekcontext.plugs import HermesSkillImporter
+# 技能：CLI skill-import 或 from contextseek.plugs import HermesSkillImporter
 
 ctx.retrieve("SLA 与账单偏好", scope=scope, k=15)
 ctx.skill_tools(scope=scope, query="部署检查清单")

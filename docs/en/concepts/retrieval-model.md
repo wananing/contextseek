@@ -1,6 +1,6 @@
 # Retrieval Model
 
-SeekContext's retrieval is a multi-stage pipeline: **recall** → **rerank** → **layer selection**. Understanding each stage helps you tune quality and control token costs.
+ContextSeek's retrieval is a multi-stage pipeline: **recall** → **rerank** → **layer selection**. Understanding each stage helps you tune quality and control token costs.
 
 ---
 
@@ -116,7 +116,7 @@ This keeps most prompt injections at ~2k chars while still providing full contex
 Narrow the candidate set before scoring:
 
 ```python
-from seekcontext.domain.stages import Stage
+from contextseek.domain.stages import Stage
 
 # Filter by stage
 response = ctx.retrieve("query", scope="acme/bot",

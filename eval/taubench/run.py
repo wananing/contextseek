@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI entry point for tau-bench + SeekContext evaluations.
+"""CLI entry point for tau-bench + ContextSeek evaluations.
 
 Usage:
     uv run python -m eval.taubench.run \
@@ -7,7 +7,7 @@ Usage:
         --stage run,evaluate
 
     uv run python -m eval.taubench.run \
-        --config eval/taubench/config/seekcontext_react.yaml \
+        --config eval/taubench/config/contextseek_react.yaml \
         --stage run,distill,evaluate
 """
 
@@ -42,50 +42,50 @@ def load_config(path: str) -> dict[str, Any]:
 
 
 def resolve_scope(config: dict[str, Any]) -> str:
-    """Resolve the SeekContext scope from config."""
-    seek_cfg = config.get("seekcontext", {})
+    """Resolve the ContextSeek scope from config."""
+    seek_cfg = config.get("contextseek", {})
     domain = config.get("domain", "airline")
     return seek_cfg.get("scope", f"taubench/{domain}/shared/global")
 
 
-def build_seekcontext_client(config: dict[str, Any]) -> Any:
-    """Build a SeekContext client from config."""
-    from seekcontext import SeekContext
+def build_contextseek_client(config: dict[str, Any]) -> Any:
+    """Build a ContextSeek client from config."""
+    from contextseek import ContextSeek
 
-    seek_cfg = config.get("seekcontext", {})
+    seek_cfg = config.get("contextseek", {})
     storage_cfg = seek_cfg.get("storage", {})
     domain = config.get("domain", "airline")
     scope = resolve_scope(config)
 
     if str(storage_cfg.get("backend", "")).lower() in {"oceanbase", "ob"}:
-        ctx = build_oceanbase_seekcontext(seek_cfg)
+        ctx = build_oceanbase_contextseek(seek_cfg)
         return ctx, scope, domain
 
-    ctx = SeekContext()
+    ctx = ContextSeek()
     if storage_cfg.get("backend") == "file":
-        path = storage_cfg.get("path", f".seekcontext/taubench/{domain}")
+        path = storage_cfg.get("path", f".contextseek/taubench/{domain}")
         from seekvfs import VFS
-        from seekcontext.storage.file_backend import FileBackend
-        from seekcontext.storage.storage_adapter import SeekVFSStorageAdapter
+        from contextseek.storage.file_backend import FileBackend
+        from contextseek.storage.storage_adapter import SeekVFSStorageAdapter
 
         backend = FileBackend(root_dir=path)
         backend.initialize()
         vfs = VFS(
-            routes={"seekcontext://": {"backend": backend}},
-            scheme="seekcontext://",
+            routes={"contextseek://": {"backend": backend}},
+            scheme="contextseek://",
         )
         ctx.adapter = SeekVFSStorageAdapter(vfs)
 
     return ctx, scope, domain
 
 
-def build_oceanbase_seekcontext(seek_cfg: dict[str, Any]) -> Any:
-    """Build an OceanBase-backed SeekContext instance for tau-bench."""
+def build_oceanbase_contextseek(seek_cfg: dict[str, Any]) -> Any:
+    """Build an OceanBase-backed ContextSeek instance for tau-bench."""
     import seekvfs
-    from seekcontext import SeekContext, SeekContextSettings
-    from seekcontext.storage import OceanBaseBackend, SeekVFSStorageAdapter
-    from seekcontext.config.factory import build_embedder, build_llm, build_summarizer
-    from seekcontext.config.settings import (
+    from contextseek import ContextSeek, ContextSeekSettings
+    from contextseek.storage import OceanBaseBackend, SeekVFSStorageAdapter
+    from contextseek.config.factory import build_embedder, build_llm, build_summarizer
+    from contextseek.config.settings import (
         EmbeddingSettings,
         EvolutionSettings,
         LLMSettings,
@@ -96,9 +96,9 @@ def build_oceanbase_seekcontext(seek_cfg: dict[str, Any]) -> Any:
         SummarizerSettings,
         to_strategy_config,
     )
-    from seekcontext.routing.resolver import ScopeResolver
+    from contextseek.routing.resolver import ScopeResolver
 
-    settings = SeekContextSettings(
+    settings = ContextSeekSettings(
         storage=StorageSettings(**seek_cfg.get("storage", {})),
         embedding=EmbeddingSettings(**seek_cfg.get("embedding", {})),
         llm=LLMSettings(**seek_cfg.get("llm", {})),
@@ -111,7 +111,7 @@ def build_oceanbase_seekcontext(seek_cfg: dict[str, Any]) -> Any:
     embedder = build_embedder(settings.embedding)
     if embedder is None:
         raise ValueError(
-            "seekcontext.storage.backend=oceanbase requires seekcontext.embedding "
+            "contextseek.storage.backend=oceanbase requires contextseek.embedding "
             "to configure a real embedding provider."
         )
 
@@ -124,13 +124,13 @@ def build_oceanbase_seekcontext(seek_cfg: dict[str, Any]) -> Any:
         raise ValueError("OceanBase storage requires vector_dims or embedding.dims")
 
     backend = OceanBaseBackend(
-        table_name=ob_cfg.get("table_name", "seekcontext_taubench"),
+        table_name=ob_cfg.get("table_name", "contextseek_taubench"),
         vector_dims=vector_dims,
         host=ob_cfg.get("host", "127.0.0.1"),
         port=str(ob_cfg.get("port", "2881")),
         user=ob_cfg.get("user", "root@test"),
         password=ob_cfg.get("password", ""),
-        db_name=ob_cfg.get("db_name", "seekcontext"),
+        db_name=ob_cfg.get("db_name", "contextseek"),
         fulltext_parser=ob_cfg.get("fulltext_parser", "ngram"),
         vidx_metric_type=ob_cfg.get("metric", ob_cfg.get("vidx_metric_type", "cosine")),
         vector_weight=float(ob_cfg.get("vector_weight", 0.7)),
@@ -146,7 +146,7 @@ def build_oceanbase_seekcontext(seek_cfg: dict[str, Any]) -> Any:
 
     audit_log = None
     if settings.observability.audit_enabled:
-        from seekcontext.observability.audit import AuditLog
+        from contextseek.observability.audit import AuditLog
 
         audit_log = AuditLog(
             persist_path=settings.observability.audit_path,
@@ -159,11 +159,11 @@ def build_oceanbase_seekcontext(seek_cfg: dict[str, Any]) -> Any:
 
     evolution_engine = None
     if settings.evolution.enabled:
-        from seekcontext.evolution.engine import EvolutionEngine
+        from contextseek.evolution.engine import EvolutionEngine
 
         evolution_engine = EvolutionEngine()
 
-    return SeekContext(
+    return ContextSeek(
         adapter=adapter,
         resolver=ScopeResolver(uri_scheme=scheme),
         embedder=embedder,
@@ -213,13 +213,13 @@ def extract_wiki_text(environment_info: Any) -> str:
 def cmd_run(args: argparse.Namespace, config: dict[str, Any]) -> int:
     """Run stage: execute tasks and write trajectories."""
     from eval.taubench.adapters.baseline import BaselineAdapter
-    from eval.taubench.adapters.seekcontext_react import SeekContextReactAdapter
-    from eval.taubench.context import TauBenchSeekContextClient
+    from eval.taubench.adapters.contextseek_react import ContextSeekReactAdapter
+    from eval.taubench.context import TauBenchContextSeekClient
     from eval.taubench.pipeline.runner import load_task_ids, run_stage
 
     domain = config.get("domain", "airline")
     agent_cfg = config.get("agent", {})
-    seek_cfg = config.get("seekcontext", {})
+    seek_cfg = config.get("contextseek", {})
     max_tasks = config.get("max_tasks")
     num_trials = config.get("num_trials", 1)
     task_split = config.get("task_split", "base")
@@ -246,15 +246,15 @@ def cmd_run(args: argparse.Namespace, config: dict[str, Any]) -> int:
             seed=config.get("seed", 42),
         )
     else:
-        ctx, scope, _domain = build_seekcontext_client(config)
-        sc = TauBenchSeekContextClient(ctx=ctx, scope=scope, domain=domain)
-        adapter = SeekContextReactAdapter(
+        ctx, scope, _domain = build_contextseek_client(config)
+        sc = TauBenchContextSeekClient(ctx=ctx, scope=scope, domain=domain)
+        adapter = ContextSeekReactAdapter(
             domain=domain,
             llm_agent=llm_agent,
             llm_args_agent=llm_args,
             llm_user=llm_user,
             max_steps=max_steps,
-            seekcontext_client=sc,
+            contextseek_client=sc,
             store_only=seek_cfg.get("store_only", False),
             auto_compact=seek_cfg.get("auto_compact", False),
             initial_context_tokens=seek_cfg.get("initial_context_tokens", 1200),
@@ -283,7 +283,7 @@ def cmd_run(args: argparse.Namespace, config: dict[str, Any]) -> int:
 
 def cmd_distill(args: argparse.Namespace, config: dict[str, Any]) -> int:
     """Distill stage: extract knowledge from trajectories."""
-    from eval.taubench.context import TauBenchSeekContextClient
+    from eval.taubench.context import TauBenchContextSeekClient
     from eval.taubench.pipeline.distiller import distill_stage
 
     domain = config.get("domain", "airline")
@@ -293,8 +293,8 @@ def cmd_distill(args: argparse.Namespace, config: dict[str, Any]) -> int:
     compact_after = distill_cfg.get("compact_after", True)
     max_records = distill_cfg.get("max_records")
 
-    ctx, scope, _domain = build_seekcontext_client(config)
-    sc = TauBenchSeekContextClient(ctx=ctx, scope=scope, domain=domain)
+    ctx, scope, _domain = build_contextseek_client(config)
+    sc = TauBenchContextSeekClient(ctx=ctx, scope=scope, domain=domain)
 
     # Import policy document if configured
     if distill_cfg.get("import_policy_doc", False):
@@ -353,7 +353,7 @@ STAGE_HANDLERS = {
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="tau-bench + SeekContext Evaluation Runner"
+        description="tau-bench + ContextSeek Evaluation Runner"
     )
     parser.add_argument(
         "--config", "-c", required=True, help="Path to YAML config file"

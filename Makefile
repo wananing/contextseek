@@ -33,7 +33,7 @@ help:
 	@echo "  make clean   # Remove build artifacts and caches"
 	@echo ""
 	@echo "Demo:"
-	@echo "  make demo-langchain   # Run LangChain-style SeekContext demo"
+	@echo "  make demo-langchain   # Run LangChain-style ContextSeek demo"
 	@echo "  make demo-http        # Start FastAPI server at 127.0.0.1:8000"
 	@echo ""
 	@echo "Benchmark targets are in eval/Makefile:"
@@ -62,7 +62,7 @@ test-integration:
 	$(UV) run pytest -q tests/integration_tests/
 
 test-cov:
-	$(UV) run pytest -q --cov=src/seekcontext --cov-report=term-missing
+	$(UV) run pytest -q --cov=src/contextseek --cov-report=term-missing
 
 # ── Code quality ──────────────────────────────────────────────────────────────
 
@@ -92,4 +92,4 @@ demo-langchain:
 	PYTHONPATH=src $(PYTHON) examples/langchain_pipeline.py
 
 demo-http:
-	PYTHONPATH=src $(UVICORN) seekcontext.http.server:app --host 127.0.0.1 --port 8000 --reload
+	PYTHONPATH=src $(UVICORN) contextseek.http.server:app --host 127.0.0.1 --port 8000 --reload

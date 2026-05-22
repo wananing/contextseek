@@ -1,6 +1,6 @@
 """Tests for scope routing/resolver."""
 
-from seekcontext.routing.resolver import ScopeResolver
+from contextseek.routing.resolver import ScopeResolver
 
 
 class TestScopeResolver:

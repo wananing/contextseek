@@ -41,7 +41,7 @@ Scope 是**路径字符串**，无强制 schema：
 手写 scope 字符串容易出错。`ScopeBuilder` 提供链式 API，通过具名方法明确路径结构：
 
 ```python
-from seekcontext import ScopeBuilder, ScopeTemplates
+from contextseek import ScopeBuilder, ScopeTemplates
 
 # 链式构建，每个方法返回新实例（不可变，可安全分支）
 scope = (
@@ -80,7 +80,7 @@ scope = ScopeBuilder.from_env(
 常见场景可用 `ScopeTemplates` 一步到位：
 
 ```python
-from seekcontext import ScopeTemplates
+from contextseek import ScopeTemplates
 
 ScopeTemplates.org_knowledge("acme", "platform", "billing")
 # → "acme/platform/knowledge/billing"
@@ -103,10 +103,10 @@ ScopeTemplates.shared("payment-project", "knowledge")
 开发期启用 `scope_lint=True`，`ctx.add()` 会在 scope 不规范时发出 `ScopeLintWarning`：
 
 ```python
-from seekcontext import SeekContext
-from seekcontext.config.settings import SeekContextSettings
+from contextseek import ContextSeek
+from contextseek.config.settings import ContextSeekSettings
 
-ctx = SeekContext.from_settings(SeekContextSettings(scope_lint=True))
+ctx = ContextSeek.from_settings(ContextSeekSettings(scope_lint=True))
 # 以下会触发 ScopeLintWarning：
 ctx.add("...", scope="flat", source="test")          # 无 /，建议至少两层
 ctx.add("...", scope="Acme/Pay", source="test")      # 含大写字母
@@ -150,12 +150,12 @@ raw  →  extracted  →  knowledge  →  skill
 | `knowledge` | 合并后事实、经验证的 runbook | 0.85 |
 | `skill` | 可执行的操作流程 | 1.0 |
 
-**自动推断：** `add()` 时省略 `stage`，SeekContext 根据 `source_type` 和内容形态推断。设置 `EVOLUTION_LLM_STAGE_INFER_ENABLED=true` 后，LLM 分类器可覆盖启发式结果。
+**自动推断：** `add()` 时省略 `stage`，ContextSeek 根据 `source_type` 和内容形态推断。设置 `EVOLUTION_LLM_STAGE_INFER_ENABLED=true` 后，LLM 分类器可覆盖启发式结果。
 
 **写入时手动覆盖：**
 
 ```python
-from seekcontext.domain.stages import Stage
+from contextseek.domain.stages import Stage
 
 # 直接将文档标记为 knowledge
 ctx.add("团队 runbook", scope="acme/sre", source="wiki", stage=Stage.knowledge)
@@ -176,10 +176,10 @@ Stability 控制条目在衰减或归档之前的保留时长：
 | `stable` | 长期知识 | `knowledge` |
 | `permanent` | 技能/关键策略，仅手动删除 | `skill` |
 
-SeekContext 根据 stage 自动设置默认 Stability。可在 `add()` 时覆盖：
+ContextSeek 根据 stage 自动设置默认 Stability。可在 `add()` 时覆盖：
 
 ```python
-from seekcontext.domain.stages import Stability
+from contextseek.domain.stages import Stability
 
 ctx.add("永久策略", scope="acme/legal", source="policy-doc",
         stability=Stability.permanent)
@@ -189,7 +189,7 @@ ctx.add("永久策略", scope="acme/legal", source="policy-doc",
 
 ## 设计目标：一种对象，三重保障
 
-进入 SeekContext 的数据都应满足：
+进入 ContextSeek 的数据都应满足：
 
 | 保障 | 机制 |
 |------|------|
@@ -197,7 +197,7 @@ ctx.add("永久策略", scope="acme/legal", source="policy-doc",
 | **可溯源** | 必填 `provenance`；`links`；审计 API |
 | **可演进** | `stage` 流水线；`compact()` / `dream()` |
 
-无明确来源、永不被搜索或纯临时缓冲的数据，应放在 SeekContext 之外（Redis 会话缓存、原始日志文件等）。
+无明确来源、永不被搜索或纯临时缓冲的数据，应放在 ContextSeek 之外（Redis 会话缓存、原始日志文件等）。
 
 ---
 

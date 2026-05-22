@@ -1,10 +1,10 @@
-"""Research Agent Demo: Comprehensive SeekContext Feature Showcase.
+"""Research Agent Demo: Comprehensive ContextSeek Feature Showcase.
 
 Scenario: A research agent investigates "distributed databases" — ingesting
 sources, building knowledge through the evolution pipeline, and distilling
 skills.
 
-This script exercises all major SeekContext capabilities:
+This script exercises all major ContextSeek capabilities:
   - ContextItem add with provenance (multiple source types)
   - retrieve() with full=False (L1 default) vs full=True (L2)
   - expand() to upgrade selected hits to full content
@@ -16,7 +16,7 @@ This script exercises all major SeekContext capabilities:
   - Context injection for LLM prompt building
   - Skill execution framework
 
-Requirements: only the seekcontext project itself (zero external dependencies).
+Requirements: only the contextseek project itself (zero external dependencies).
 
 Run:
     uv run python examples/research_agent_demo.py
@@ -29,19 +29,19 @@ from pathlib import Path
 
 import seekvfs
 
-from seekcontext import SeekContext, SourceType, Stage, Link, LinkType
-from seekcontext.storage import FileBackend, SeekVFSStorageAdapter
-from seekcontext.config.strategies import (
+from contextseek import ContextSeek, SourceType, Stage, Link, LinkType
+from contextseek.storage import FileBackend, SeekVFSStorageAdapter
+from contextseek.config.strategies import (
     CanaryRule,
     RetrievalStrategy,
     StrategyConfig,
     StrategyRouter,
 )
-from seekcontext.domain.skill_executor import CallableSkillHandler, SkillExecutor
-from seekcontext.evolution.engine import EvolutionEngine
-from seekcontext.retrieval.orchestrator import RetrievalOrchestrator
-from seekcontext.routing.resolver import ScopeResolver
-from seekcontext.trace.export import TraceExporter
+from contextseek.domain.skill_executor import CallableSkillHandler, SkillExecutor
+from contextseek.evolution.engine import EvolutionEngine
+from contextseek.retrieval.orchestrator import RetrievalOrchestrator
+from contextseek.routing.resolver import ScopeResolver
+from contextseek.trace.export import TraceExporter
 
 # ============================================================
 # Configuration
@@ -79,11 +79,11 @@ def main() -> None:
     print("=" * 70)
 
     print("\n[Step 1] Initializing storage and client...")
-    backend = FileBackend(root_dir=root, scheme="seekcontext://")
-    vfs = seekvfs.VFS({"seekcontext://": {"backend": backend}}, scheme="seekcontext://")
+    backend = FileBackend(root_dir=root, scheme="contextseek://")
+    vfs = seekvfs.VFS({"contextseek://": {"backend": backend}}, scheme="contextseek://")
     adapter = SeekVFSStorageAdapter(vfs)
 
-    ctx = SeekContext(adapter=adapter)
+    ctx = ContextSeek(adapter=adapter)
     scope = "research_lab/dist_sys/agent_alpha"
     print(f"  Scope: {scope}")
     print(f"  Storage: {root}")

@@ -1,4 +1,4 @@
-"""Agent adapter protocol — shared between baseline and SeekContext adapters."""
+"""Agent adapter protocol — shared between baseline and ContextSeek adapters."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from typing import Any, Protocol
 
 
 class AgentAdapter(Protocol):
-    """Protocol for task-running adapters (baseline / seekcontext / evolve)."""
+    """Protocol for task-running adapters (baseline / contextseek / evolve)."""
 
     adapter_name: str
 

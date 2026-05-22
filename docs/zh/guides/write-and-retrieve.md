@@ -16,7 +16,7 @@
 ```mermaid
 sequenceDiagram
   participant App
-  participant SC as SeekContext
+  participant SC as ContextSeek
   participant Store as 存储
 
   App->>SC: add(content, scope, source)
@@ -41,10 +41,10 @@ sequenceDiagram
 ### 基本写入
 
 ```python
-from seekcontext import SeekContext
-from seekcontext.domain.provenance import SourceType
+from contextseek import ContextSeek
+from contextseek.domain.provenance import SourceType
 
-ctx = SeekContext.from_settings()
+ctx = ContextSeek.from_settings()
 
 item = ctx.add(
     "回滚前必须先排空连接再执行 schema 变更。",
@@ -97,7 +97,7 @@ trace = ctx.add(
 4. **冲突检测** — 完全重复抛 `ValueError`；近似重复打 `near_duplicate`；矛盾打 `has_contradiction` 并建 `refuted_by` 链接
 5. **Summarizer** — 配置正确时生成 L0 `abstract`、L1 `summary`
 6. **Embedder** — 对 L0（无则 L2 全文）做向量
-7. **持久化** — 写入 `seekcontext://{scope}/{id}`
+7. **持久化** — 写入 `contextseek://{scope}/{id}`
 
 无 summarizer/embedder 时，仍可通过 File 等后端的 **phrase/term** 子串召回检索。
 
@@ -258,9 +258,9 @@ for spec in ctx.tools():
 ## 完整示例：客服一轮对话
 
 ```python
-from seekcontext import SeekContext
+from contextseek import ContextSeek
 
-ctx = SeekContext.from_settings()
+ctx = ContextSeek.from_settings()
 scope = "acme/support/user-8812"
 
 ctx.add("用户等级：企业版；SLA 4 小时。", scope=scope, source="crm/profile", tags=["profile"])

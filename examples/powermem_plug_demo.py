@@ -1,15 +1,15 @@
-"""SeekContext DataPlug demo: import PowerMem memories via PowerMemPlug.
+"""ContextSeek DataPlug demo: import PowerMem memories via PowerMemPlug.
 
-SeekContext acts as a "smart socket" (DataPlug): existing PowerMem memories are
+ContextSeek acts as a "smart socket" (DataPlug): existing PowerMem memories are
 streamed in as ContextItems, then unified retrieval, provenance, and evolution
 apply on top — without rewriting the agent harness for each data source.
 
 Flow:
   1. PowerMem stores user/agent memories (live SQLite + mock embedder, or mock data)
   2. Export via ``get_all`` → ``PowerMemPlug.from_records()``
-  3. ``ctx.plug(plug, scope=...)`` ingests into SeekContext
-  4. Optional SeekContext-native items on the same scope
-  5. ``retrieve()`` recalls PowerMem + SeekContext content together
+  3. ``ctx.plug(plug, scope=...)`` ingests into ContextSeek
+  4. Optional ContextSeek-native items on the same scope
+  5. ``retrieve()`` recalls PowerMem + ContextSeek content together
 
 Modes (``USE_POWERMEM`` env):
   - ``auto`` (default): use PowerMem when installed, else built-in mock records
@@ -44,10 +44,10 @@ from typing import Any
 
 import seekvfs
 
-from seekcontext import SeekContext, SourceType
-from seekcontext.plugs import PowerMemPlug
-from seekcontext.storage import FileBackend, SeekVFSStorageAdapter
-from seekcontext.domain.stages import Stage
+from contextseek import ContextSeek, SourceType
+from contextseek.plugs import PowerMemPlug
+from contextseek.storage import FileBackend, SeekVFSStorageAdapter
+from contextseek.domain.stages import Stage
 
 # ============================================================
 # Configuration
@@ -167,16 +167,16 @@ def main() -> None:
     print(f"\n[1/5] PowerMem 数据源: {source_label}")
     print(f"      导出 {len(records)} 条记忆 → PowerMemPlug.from_records()")
 
-    backend = FileBackend(root_dir=root, scheme="seekcontext://")
-    vfs = seekvfs.VFS({"seekcontext://": {"backend": backend}}, scheme="seekcontext://")
+    backend = FileBackend(root_dir=root, scheme="contextseek://")
+    vfs = seekvfs.VFS({"contextseek://": {"backend": backend}}, scheme="contextseek://")
     adapter = SeekVFSStorageAdapter(vfs)
-    ctx = SeekContext(adapter=adapter)
+    ctx = ContextSeek(adapter=adapter)
 
     with vfs:
         print(f"\n[2/5] 挂载插座: ctx.plug(PowerMemPlug, scope={SCOPE!r})")
         ctx.plug(plug, scope=SCOPE)
 
-        print("\n[3/5] SeekContext 侧追加演进知识（同一 scope，与 PowerMem 共存）")
+        print("\n[3/5] ContextSeek 侧追加演进知识（同一 scope，与 PowerMem 共存）")
         ctx.add(
             "Playbook：OceanBase 混合检索排障先查 ANN 索引与全文索引是否同库同表。",
             scope=SCOPE,
@@ -186,14 +186,14 @@ def main() -> None:
             stage=Stage.knowledge,
         )
 
-        print("\n[4/5] 统一检索 — PowerMem 导入项 + SeekContext 原生项")
+        print("\n[4/5] 统一检索 — PowerMem 导入项 + ContextSeek 原生项")
         for query in ["OceanBase", "混合检索", "中文"]:
             response = ctx.retrieve(query, scope=SCOPE, k=5)
             print(f"\n  query={query!r}  命中 {len(response)} 条:")
             for i, hit in enumerate(response, 1):
                 print_hit(i, hit)
 
-        print("\n[5/5] 溯源对比（PowerMem 插座 vs SeekContext 文档）")
+        print("\n[5/5] 溯源对比（PowerMem 插座 vs ContextSeek 文档）")
         response = ctx.retrieve("OceanBase", scope=SCOPE, k=10)
         powermem_hits = [
             h for h in response if "powermem" in (h.item.tags or [])
@@ -205,13 +205,13 @@ def main() -> None:
         print(f"  PowerMem 导入（tags 含 powermem）: {len(powermem_hits)} 条")
         for h in powermem_hits[:2]:
             print(f"    - {h.item.provenance.source_id}")
-        print(f"  SeekContext playbook: {len(native_hits)} 条")
+        print(f"  ContextSeek playbook: {len(native_hits)} 条")
         for h in native_hits:
             print(f"    - {h.item.provenance.source_id}")
 
         print("\n" + "-" * 72)
         print("要点:")
-        print("  • PowerMem 继续负责记忆写入/向量检索；SeekContext 通过 DataPlug 即插导入。")
+        print("  • PowerMem 继续负责记忆写入/向量检索；ContextSeek 通过 DataPlug 即插导入。")
         print("  • 同一 scope 下可与 trace、RAG、技能等 ContextItem 统一 retrieve。")
         print("  • provenance.source_id 保留 powermem://<id>，tags 含 powermem 便于过滤。")
         print("-" * 72)

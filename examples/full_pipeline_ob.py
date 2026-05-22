@@ -1,21 +1,21 @@
-"""完整链路示例：OceanBase backend + 真实 Embedder + SeekContext。
+"""完整链路示例：OceanBase backend + 真实 Embedder + ContextSeek。
 
 涵盖：
   1. 用 LangChainEmbedder 包装任意 LangChain Embeddings 模型
   2. 用 OceanBaseBackend 作为向量 + 全文混合检索后端
-  3. 通过 SeekContext 写入 ContextItem，并做语义检索
+  3. 通过 ContextSeek 写入 ContextItem，并做语义检索
   4. 直接使用 RetrievalOrchestrator 做底层检索（可选）
 
 运行前依赖安装：
     # OceanBase 后端
-    pip install "seekcontext[oceanbase]"
+    pip install "contextseek[oceanbase]"
 
     # LangChain 接口层（必装）
-    pip install "seekcontext[langchain]"
+    pip install "contextseek[langchain]"
 
     # Embeddings provider，任选其一：
-    pip install "seekcontext[openai]"       # OpenAI
-    pip install "seekcontext[ollama]"       # Ollama 本地
+    pip install "contextseek[openai]"       # OpenAI
+    pip install "contextseek[ollama]"       # Ollama 本地
     # 阿里云百炼 / DashScope（Qwen 系 text-embedding-*）：
     pip install langchain-community dashscope
 
@@ -34,7 +34,7 @@ OB_HOST = "127.0.0.1"
 OB_PORT = "2881"
 OB_USER = "root@test"
 OB_PASSWORD = "atest"
-OB_DB_NAME = "seekcontext"
+OB_DB_NAME = "contextseek"
 
 TABLE_NAME = "seekctx_full_demo"
 
@@ -61,12 +61,12 @@ DASHSCOPE_MODEL = "text-embedding-v4"  # 维度以实测为准；与 VECTOR_DIMS
 
 import seekvfs
 
-from seekcontext import SeekContext
-from seekcontext.embedders import LangChainEmbedder
-from seekcontext.storage import OceanBaseBackend, SeekVFSStorageAdapter
-from seekcontext.domain.provenance import SourceType
-from seekcontext.retrieval.orchestrator import RetrievalOrchestrator
-from seekcontext.routing.resolver import ScopeResolver
+from contextseek import ContextSeek
+from contextseek.embedders import LangChainEmbedder
+from contextseek.storage import OceanBaseBackend, SeekVFSStorageAdapter
+from contextseek.domain.provenance import SourceType
+from contextseek.retrieval.orchestrator import RetrievalOrchestrator
+from contextseek.routing.resolver import ScopeResolver
 
 
 # ---------------------------------------------------------------------------
@@ -102,7 +102,7 @@ def build_embedder() -> LangChainEmbedder:
 
 def _validate_vector_dims(embedder: LangChainEmbedder) -> None:
     """避免 VECTOR_DIMS 与模型实际输出不一致导致 pyobvector 写入失败。"""
-    probe = embedder("seekcontext-dim-probe")
+    probe = embedder("contextseek-dim-probe")
     actual = len(probe)
     if actual != embedder.dims:
         raise SystemExit(
@@ -141,11 +141,11 @@ def main() -> None:
     )
 
     # 2. VFS + 适配器
-    vfs = seekvfs.VFS({"seekcontext://": {"backend": backend}}, scheme="seekcontext://")
+    vfs = seekvfs.VFS({"contextseek://": {"backend": backend}}, scheme="contextseek://")
     adapter = SeekVFSStorageAdapter(vfs)
 
-    # 3. SeekContext（注入自定义 adapter + embedder）
-    ctx = SeekContext(adapter=adapter, embedder=embedder)
+    # 3. ContextSeek（注入自定义 adapter + embedder）
+    ctx = ContextSeek(adapter=adapter, embedder=embedder)
     scope = "demo_tenant/default/alice"
 
     print("[4/4] 连接 OceanBase 并初始化...")
@@ -175,9 +175,9 @@ def main() -> None:
             print(f"已写入: {item.id}  stage={item.stage.value}  —  {content[:40]}...")
 
         # ----------------------------------------------------------------
-        # 语义检索（通过 SeekContext）
+        # 语义检索（通过 ContextSeek）
         # ----------------------------------------------------------------
-        print("\n=== 语义检索：SeekContext.retrieve ===")
+        print("\n=== 语义检索：ContextSeek.retrieve ===")
         query = "分布式数据库的向量混合检索"
         response = ctx.retrieve(query, scope=scope, k=3)
         for i, hit in enumerate(response, 1):

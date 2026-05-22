@@ -1,12 +1,12 @@
 """Tests for retrieval orchestrator and components."""
 
-from seekcontext.retrieval.components import (
+from contextseek.retrieval.components import (
     DefaultRecallRoute,
     HeuristicReranker,
     RecallQuery,
     tokens,
 )
-from seekcontext.config.strategies import RetrievalStrategy
+from contextseek.config.strategies import RetrievalStrategy
 
 
 class TestTokens:

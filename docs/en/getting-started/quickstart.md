@@ -9,7 +9,7 @@
 ### Using uv (recommended)
 
 ```bash
-cd seekcontext
+cd contextseek
 uv sync
 source .venv/bin/activate
 ```
@@ -17,7 +17,7 @@ source .venv/bin/activate
 ### Using pip
 
 ```bash
-cd seekcontext
+cd contextseek
 python3 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[test]"
@@ -33,9 +33,9 @@ pip install -e ".[langchain,openai]"        # LangChain + OpenAI embeddings
 ## 2. Minimal example (InMemory)
 
 ```python
-from seekcontext import SeekContext
+from contextseek import ContextSeek
 
-ctx = SeekContext.from_settings()  # default InMemory backend
+ctx = ContextSeek.from_settings()  # default InMemory backend
 
 item = ctx.add(
     "User prefers answers in English",
@@ -53,20 +53,20 @@ for hit in response:
 ## 3. File persistence
 
 ```python
-from seekcontext import SeekContext, SeekContextSettings
-from seekcontext.config.settings import StorageSettings
+from contextseek import ContextSeek, ContextSeekSettings
+from contextseek.config.settings import StorageSettings
 
-settings = SeekContextSettings(
-    storage=StorageSettings(backend="file", path=".seekcontext/data"),
+settings = ContextSeekSettings(
+    storage=StorageSettings(backend="file", path=".contextseek/data"),
 )
-ctx = SeekContext.from_settings(settings)
+ctx = ContextSeek.from_settings(settings)
 ```
 
 Or use a `.env` file (see [.env.example](../../../.env.example) at the repo root):
 
 ```env
 STORAGE_BACKEND=file
-STORAGE_PATH=.seekcontext/data
+STORAGE_PATH=.contextseek/data
 ```
 
 ## 4. Retrieve, expand, and agent tools
@@ -105,10 +105,10 @@ uv run python examples/research_agent_demo.py
 ## 7. HTTP / MCP / CLI
 
 ```bash
-uvicorn seekcontext.http.server:app --port 8000
-seekcontext-mcp-stdio
-seekcontext add --scope acme/proj/user --content "fact" --source cli
-seekcontext retrieve --scope acme/proj/user --query "fact" --k 5
+uvicorn contextseek.http.server:app --port 8000
+contextseek-mcp-stdio
+contextseek add --scope acme/proj/user --content "fact" --source cli
+contextseek retrieve --scope acme/proj/user --query "fact" --k 5
 ```
 
 Next: [Core concepts](../guides/core-concepts.md) · [Write & retrieve](../guides/write-and-retrieve.md)

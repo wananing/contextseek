@@ -1,6 +1,6 @@
-# SeekContext documentation
+# ContextSeek documentation
 
-Public, **usage-oriented** documentation for integrating and operating SeekContext.
+Public, **usage-oriented** documentation for integrating and operating ContextSeek.
 
 ## Languages
 
@@ -51,7 +51,7 @@ Onboarding only — no deep architecture.
 |------|---------------|
 | `installation.md` | pip/uv, extras (`http`, `langchain`, `oceanbase`) |
 | `quickstart.md` | InMemory → file → `retrieve` / `expand` in one page |
-| `configuration.md` | `.env`, `SeekContextSettings`, phased LLM rollout |
+| `configuration.md` | `.env`, `ContextSeekSettings`, phased LLM rollout |
 
 ### `concepts/`
 
@@ -91,7 +91,7 @@ Lookup tables — minimal prose.
 
 | File | Covers |
 |------|--------|
-| `api.md` | All `SeekContext` methods, parameters, return types |
+| `api.md` | All `ContextSeek` methods, parameters, return types |
 | `settings.md` | All environment variables with defaults |
 | `examples.md` | Index of `examples/*.py` with one-line purpose |
 
@@ -113,7 +113,7 @@ Common issues and resolutions: install errors, empty results, evolution problems
 
 1. **One language per file** — no mixed EN/ZH in the same page.
 2. **Relative links** — `../reference/api.md` within a language tree; cross-language links only from `docs/README.md`.
-3. **Code must run** — snippets tested against current `SeekContext` API.
+3. **Code must run** — snippets tested against current `ContextSeek` API.
 4. **Secrets** — never commit real keys; reference `.env.example`.
 
 ---

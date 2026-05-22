@@ -1,34 +1,34 @@
-# SeekContext
+# ContextSeek
 
-[![License](https://img.shields.io/github/license/ob-labs/seekcontext.svg)](LICENSE)
-[![CI](https://github.com/ob-labs/seekcontext/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/ob-labs/seekcontext/actions/workflows/main.yml?query=branch%3Amain)
+[![License](https://img.shields.io/github/license/ob-labs/contextseek.svg)](LICENSE)
+[![CI](https://github.com/ob-labs/contextseek/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/ob-labs/contextseek/actions/workflows/main.yml?query=branch%3Amain)
 
 Semantic context infrastructure for AI agents. [中文文档](README_CN.md)
 
-## What SeekContext is
+## What ContextSeek is
 
-SeekContext is a context layer that sits between LLMs and agent runtimes. It gives agents a place to store, retrieve, and evolve context across sessions — without scattering that context across JSONL logs, vector stores, or separate memory services.
+ContextSeek is a context layer that sits between LLMs and agent runtimes. It gives agents a place to store, retrieve, and evolve context across sessions — without scattering that context across JSONL logs, vector stores, or separate memory services.
 
 Everything is represented as a `ContextItem` — a single unit that carries content, provenance (where it came from and how confident the system is), links to related items, and maturity metadata. Items advance through a lifecycle — `raw → extracted → knowledge → skill` — that the system drives automatically, so agents do not manage tiering or summarization by hand.
 
-SeekContext is storage-agnostic. InMemory and file backends work for development and single-process use. OceanBase adds hybrid HNSW vector + full-text search for production deployments.
+ContextSeek is storage-agnostic. InMemory and file backends work for development and single-process use. OceanBase adds hybrid HNSW vector + full-text search for production deployments.
 
 ## Why it exists
 
 Agents accumulate runtime data quickly: execution traces, retrieved passages, tool results, user feedback. That data is often discarded at session end or scattered across multiple persistence layers with no consistent schema, source tracking, or quality metadata.
 
-SeekContext starts from the assumption that context should be a first-class asset: retrievable by semantic query, auditable by provenance chain, and evolvable from raw observations toward refined knowledge. The same context can then serve retrieval during inference, debugging after a run, evaluation across trajectory comparisons, and offline training — without re-ingestion into separate pipelines.
+ContextSeek starts from the assumption that context should be a first-class asset: retrievable by semantic query, auditable by provenance chain, and evolvable from raw observations toward refined knowledge. The same context can then serve retrieval during inference, debugging after a run, evaluation across trajectory comparisons, and offline training — without re-ingestion into separate pipelines.
 
 ## Quick Start
 
 ```bash
-pip install seekcontext
+pip install contextseek
 ```
 
 ```python
-from seekcontext import SeekContext
+from contextseek import ContextSeek
 
-ctx = SeekContext.from_settings()  # reads .env or environment variables
+ctx = ContextSeek.from_settings()  # reads .env or environment variables
 
 # Write
 ctx.add(
@@ -42,13 +42,13 @@ for hit in ctx.retrieve("distributed database", scope="acme/db/engineer", k=10):
     print(f"[{hit.item.stage.value}] score={hit.score:.2f} | {hit.item.summary[:60]}")
 ```
 
-Configure via `.env` (see [.env.example](.env.example)) or `SeekContextSettings` in code. A storage backend, an embedding provider, and an LLM are the three required pieces.
+Configure via `.env` (see [.env.example](.env.example)) or `ContextSeekSettings` in code. A storage backend, an embedding provider, and an LLM are the three required pieces.
 
 ## Documentation
 
 - [Getting started (EN)](docs/en/getting-started/quickstart.md) / [快速上手 (ZH)](docs/zh/getting-started/quickstart.md): installation, `.env` setup, and a walkthrough of the core operations.
 - [Client API reference](docs/en/reference/client-api.md): full method signatures for `add`, `retrieve`, `expand`, `compact`, `dream`, `evidence_chain`, and more.
-- [Configuration reference](docs/en/reference/configuration.md): all environment variables and `SeekContextSettings` fields.
+- [Configuration reference](docs/en/reference/configuration.md): all environment variables and `ContextSeekSettings` fields.
 - [DataPlugs](docs/en/guides/integrations/dataplugs.md): how to ingest from RAG pipelines, memory stores, execution traces, and skill / tool registries.
 - [Examples](examples/README.md): annotated scripts for common workflows.
 - [AppWorld eval](eval/appworld/README.md) / [τ-bench eval](eval/taubench/README.md): optional evaluation harnesses with their own setup requirements.

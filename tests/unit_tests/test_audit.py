@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from seekcontext.observability.audit import AuditLog, AuditRecord, MetricPoint
+from contextseek.observability.audit import AuditLog, AuditRecord, MetricPoint
 
 
 def _make_record(**kwargs):
@@ -51,4 +51,4 @@ class TestAuditLog:
         log = AuditLog()
         log.append(_make_record(elapsed_ms=5.0))
         output = log.export_prometheus()
-        assert "seekcontext_request_metric" in output
+        assert "contextseek_request_metric" in output

@@ -1,4 +1,4 @@
-"""SeekContext client for tau-bench evaluation.
+"""ContextSeek client for tau-bench evaluation.
 
 Adapted from eval/appworld/context.py with tau-bench specific enhancements:
 - Domain-prefix augmented retrieval
@@ -13,12 +13,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from seekcontext import SeekContext, SourceType, Stage
+from contextseek import ContextSeek, SourceType, Stage
 
 
 @dataclass
 class RetrievalPayload:
-    """Prompt-ready SeekContext retrieval output."""
+    """Prompt-ready ContextSeek retrieval output."""
 
     text: str = ""
     count: int = 0
@@ -79,19 +79,19 @@ def _jsonable(value: Any) -> Any:
     return str(value)
 
 
-class TauBenchSeekContextClient:
-    """SeekContext client tailored for tau-bench airline/retail domains."""
+class TauBenchContextSeekClient:
+    """ContextSeek client tailored for tau-bench airline/retail domains."""
 
     def __init__(
         self,
-        ctx: SeekContext | None = None,
+        ctx: ContextSeek | None = None,
         *,
         scope: str,
         domain: str = "airline",
     ) -> None:
         self.scope = scope
         self.domain = domain
-        self.ctx = ctx or SeekContext()
+        self.ctx = ctx or ContextSeek()
 
     # ------------------------------------------------------------------
     # Retrieval
@@ -254,7 +254,7 @@ class TauBenchSeekContextClient:
     # ------------------------------------------------------------------
 
     def compact(self) -> dict[str, Any]:
-        """Run SeekContext compaction/evolution for the configured scope."""
+        """Run ContextSeek compaction/evolution for the configured scope."""
         report = self.ctx.compact(scope=self.scope)
         return {
             "merged_count": report.merged_count,

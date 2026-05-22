@@ -30,8 +30,8 @@ PYTHONPATH=src python examples/langchain_pipeline.py
 ```
 
 Demonstrates:
-- `SeekContextMemory` for chat history persistence
-- `SeekContextRetriever` for context retrieval
+- `ContextSeekMemory` for chat history persistence
+- `ContextSeekRetriever` for context retrieval
 - LangChain adapter usage (not DataPlugs)
 
 ## 4) Research Agent Demo (comprehensive)
@@ -40,7 +40,7 @@ Demonstrates:
 uv run python examples/research_agent_demo.py
 ```
 
-Showcases all SeekContext capabilities:
+Showcases all ContextSeek capabilities:
 - ContextItem with multiple source types and provenance
 - Links between items (supports/refutes/supersedes)
 - Evolution pipeline (raw → extracted → knowledge → skill)
@@ -52,12 +52,12 @@ Showcases all SeekContext capabilities:
 
 ## 5) PowerMem integration
 
-**Only need memories?** Keep using PowerMem `memory.add` / `memory.search` — SeekContext is optional.
+**Only need memories?** Keep using PowerMem `memory.add` / `memory.search` — ContextSeek is optional.
 
-**Need memories + trace/RAG/playbook in one `retrieve()`?** Plug then query SeekContext:
+**Need memories + trace/RAG/playbook in one `retrieve()`?** Plug then query ContextSeek:
 
 ```python
-from seekcontext.plugs import PowerMemPlug
+from contextseek.plugs import PowerMemPlug
 
 ctx.plug(
     PowerMemPlug.from_memory(memory, user_id="...", agent_id="..."),
@@ -79,9 +79,9 @@ uv run python examples/powermem_plug_demo.py
 ```
 
 Demonstrates:
-- SeekContext as a **DataPlug socket**: `PowerMemPlug` imports PowerMem `get_all` rows
+- ContextSeek as a **DataPlug socket**: `PowerMemPlug` imports PowerMem `get_all` rows
 - `PowerMemPlug.from_records()` — normalize PowerMem search/get_all dicts
-- Same-scope unified `retrieve()` over PowerMem memories + SeekContext-native knowledge
+- Same-scope unified `retrieve()` over PowerMem memories + ContextSeek-native knowledge
 - Provenance (`powermem://<id>`) and `powermem` tags for filtering
 
 Optional live PowerMem (requires `pip install powermem` or sibling repo on `PYTHONPATH`):
@@ -95,7 +95,7 @@ USE_POWERMEM=live uv run python examples/powermem_plug_demo.py
 Start API server:
 
 ```bash
-uvicorn seekcontext.http.server:app --host 127.0.0.1 --port 8000 --reload
+uvicorn contextseek.http.server:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 Example requests:

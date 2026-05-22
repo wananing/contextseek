@@ -1,4 +1,4 @@
-"""ReAct AppWorld agent with optional SeekContext integration."""
+"""ReAct AppWorld agent with optional ContextSeek integration."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-from .context import SeekContextClient
+from .context import ContextSeekClient
 from .environment import appworld_session, normalize_optional_path, normalize_optional_str
 from .llm import LLMClient, detect_provider
 from .prompts import CONTEXT_ADDON, FEWSHOT_DEMO, REACT_STEP_PROMPT, SYSTEM_PROMPT
@@ -58,8 +58,8 @@ def _looks_like_error(text: str) -> bool:
     return any(indicator in text for indicator in indicators)
 
 
-class AppWorldSeekContextAgent:
-    """Autonomous ReAct agent that can read/write SeekContext between tasks."""
+class AppWorldContextSeekAgent:
+    """Autonomous ReAct agent that can read/write ContextSeek between tasks."""
 
     def __init__(
         self,
@@ -71,10 +71,10 @@ class AppWorldSeekContextAgent:
         azure_endpoint: str | None = None,
         azure_api_version: str | None = None,
         azure_deployment: str | None = None,
-        seekcontext_client: SeekContextClient | None = None,
+        contextseek_client: ContextSeekClient | None = None,
         max_steps: int = 25,
         temperature: float = 0.0,
-        experiment_name: str = "seekcontext_eval",
+        experiment_name: str = "contextseek_eval",
         store_only: bool = False,
         auto_compact: bool = False,
         initial_context_tokens: int = 1200,
@@ -101,7 +101,7 @@ class AppWorldSeekContextAgent:
             azure_endpoint=azure_endpoint or "",
             azure_api_version=azure_api_version,
         )
-        self.seekcontext = seekcontext_client
+        self.contextseek = contextseek_client
         self.max_steps = max_steps
         self.temperature = temperature
         self.experiment_name = experiment_name
@@ -113,10 +113,10 @@ class AppWorldSeekContextAgent:
 
     def run_task(self, task_id: str) -> TaskResult:
         """Run a single AppWorld task."""
-        if self.store_only and self.seekcontext:
+        if self.store_only and self.contextseek:
             context_mode = "store_only"
-        elif self.seekcontext:
-            context_mode = "seekcontext"
+        elif self.contextseek:
+            context_mode = "contextseek"
         else:
             context_mode = "baseline"
         result = TaskResult(task_id=task_id, success=False, num_steps=0, context_mode=context_mode)
@@ -131,8 +131,8 @@ class AppWorldSeekContextAgent:
             ) as world:
                 instruction = world.instruction
                 context_background = ""
-                if self.seekcontext and not self.store_only:
-                    payload = self.seekcontext.retrieve_for_task(
+                if self.contextseek and not self.store_only:
+                    payload = self.contextseek.retrieve_for_task(
                         instruction,
                         max_tokens=self.initial_context_tokens,
                     )
@@ -203,19 +203,19 @@ class AppWorldSeekContextAgent:
                         consecutive_empty = 0
                         observation = world.execute(parsed["code"])
                         if (
-                            self.seekcontext
+                            self.contextseek
                             and not self.store_only
                             and observation
                             and _looks_like_error(observation)
                         ):
-                            payload = self.seekcontext.retrieve_for_error(
+                            payload = self.contextseek.retrieve_for_error(
                                 observation,
                                 limit=self.error_context_limit,
                             )
                             if payload.text:
                                 observation = (
                                     f"{observation}\n\n"
-                                    "Additional SeekContext background for this error:\n"
+                                    "Additional ContextSeek background for this error:\n"
                                     f"{payload.text}"
                                 )
                             retrieved_item_ids.extend(payload.item_ids)
@@ -236,8 +236,8 @@ class AppWorldSeekContextAgent:
                 result.trajectory = steps
                 result.token_usage = {"prompt": total_prompt, "completion": total_completion}
 
-                if self.seekcontext:
-                    self.seekcontext.store_trajectory(
+                if self.contextseek:
+                    self.contextseek.store_trajectory(
                         task_id=task_id,
                         instruction=instruction,
                         steps=steps,
@@ -245,9 +245,9 @@ class AppWorldSeekContextAgent:
                     )
                     result.context_items_stored += 1
                     if result.success and retrieved_item_ids:
-                        result.feedback_applied = self.seekcontext.apply_success_feedback(retrieved_item_ids)
+                        result.feedback_applied = self.contextseek.apply_success_feedback(retrieved_item_ids)
                     if self.auto_compact:
-                        result.compact_report = self.seekcontext.compact()
+                        result.compact_report = self.contextseek.compact()
 
         except Exception as exc:
             result.error = str(exc)

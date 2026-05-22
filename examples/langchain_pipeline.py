@@ -1,4 +1,4 @@
-"""Example: SeekContext + LangChain style retrieval/memory pipeline.
+"""Example: ContextSeek + LangChain style retrieval/memory pipeline.
 
 Run from repository root:
     PYTHONPATH=src python examples/langchain_pipeline.py
@@ -6,13 +6,13 @@ Run from repository root:
 
 from __future__ import annotations
 
-from seekcontext import SeekContext, SourceType
-from seekcontext.bridges.langchain import SeekContextMemory, SeekContextRetriever
+from contextseek import ContextSeek, SourceType
+from contextseek.bridges.langchain import ContextSeekMemory, ContextSeekRetriever
 
 
 def main() -> None:
     """Execute a minimal retrieval + memory flow."""
-    ctx = SeekContext()
+    ctx = ContextSeek()
     scope = "demo_tenant/default/alice"
 
     # Add some knowledge items
@@ -24,7 +24,7 @@ def main() -> None:
         tags=["preference", "language"],
     )
     ctx.add(
-        "项目目标: 在本周五前交付 SeekContext MVP。",
+        "项目目标: 在本周五前交付 ContextSeek MVP。",
         scope=scope,
         source="trace_001",
         source_type=SourceType.trace_extraction,
@@ -32,8 +32,8 @@ def main() -> None:
     )
 
     # LangChain adapters
-    memory = SeekContextMemory(client=ctx, scope=scope, k=10)
-    retriever = SeekContextRetriever(client=ctx, scope=scope, k=5)
+    memory = ContextSeekMemory(client=ctx, scope=scope, k=10)
+    retriever = ContextSeekRetriever(client=ctx, scope=scope, k=5)
 
     # Save a conversation turn via memory adapter
     memory.save_context(

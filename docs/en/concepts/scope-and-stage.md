@@ -41,7 +41,7 @@ Scopes are **path strings** with no enforced schema:
 Hand-writing scope strings is error-prone. `ScopeBuilder` provides a chainable API where named methods make structure explicit:
 
 ```python
-from seekcontext import ScopeBuilder, ScopeTemplates
+from contextseek import ScopeBuilder, ScopeTemplates
 
 # Chainable build — each method returns a new instance (immutable, safe to branch)
 scope = (
@@ -80,7 +80,7 @@ scope = ScopeBuilder.from_env(
 For common patterns, `ScopeTemplates` gives you a one-liner:
 
 ```python
-from seekcontext import ScopeTemplates
+from contextseek import ScopeTemplates
 
 ScopeTemplates.org_knowledge("acme", "platform", "billing")
 # → "acme/platform/knowledge/billing"
@@ -103,10 +103,10 @@ ScopeTemplates.shared("payment-project", "knowledge")
 Enable `scope_lint=True` during development — `ctx.add()` will emit a `ScopeLintWarning` whenever a scope looks malformed:
 
 ```python
-from seekcontext import SeekContext
-from seekcontext.config.settings import SeekContextSettings
+from contextseek import ContextSeek
+from contextseek.config.settings import ContextSeekSettings
 
-ctx = SeekContext.from_settings(SeekContextSettings(scope_lint=True))
+ctx = ContextSeek.from_settings(ContextSeekSettings(scope_lint=True))
 # These will trigger ScopeLintWarning:
 ctx.add("...", scope="flat", source="test")          # no separator, recommend 2+ levels
 ctx.add("...", scope="Acme/Pay", source="test")      # uppercase letters
@@ -150,12 +150,12 @@ raw  →  extracted  →  knowledge  →  skill
 | `knowledge` | Merged facts, validated runbooks | 0.85 |
 | `skill` | Executable playbooks | 1.0 |
 
-**Automatic inference:** if you omit `stage` on `add()`, SeekContext infers it from `source_type` and content shape. With `EVOLUTION_LLM_STAGE_INFER_ENABLED=true`, an LLM classifier may override heuristics.
+**Automatic inference:** if you omit `stage` on `add()`, ContextSeek infers it from `source_type` and content shape. With `EVOLUTION_LLM_STAGE_INFER_ENABLED=true`, an LLM classifier may override heuristics.
 
 **Overriding at write time:**
 
 ```python
-from seekcontext.domain.stages import Stage
+from contextseek.domain.stages import Stage
 
 # Force a document directly to knowledge
 ctx.add("team runbook", scope="acme/sre", source="wiki", stage=Stage.knowledge)
@@ -176,10 +176,10 @@ Stability controls how long an item is retained before decay or archival:
 | `stable` | Long-lived knowledge | `knowledge` |
 | `permanent` | Skills and critical policies; manual delete only | `skill` |
 
-Default stability per stage is determined automatically by SeekContext. Override on `add()`:
+Default stability per stage is determined automatically by ContextSeek. Override on `add()`:
 
 ```python
-from seekcontext.domain.stages import Stability
+from contextseek.domain.stages import Stability
 
 ctx.add("permanent policy", scope="acme/legal", source="policy-doc",
         stability=Stability.permanent)
@@ -189,7 +189,7 @@ ctx.add("permanent policy", scope="acme/legal", source="policy-doc",
 
 ## Design goal: one object, three guarantees
 
-Every record entering SeekContext is expected to be:
+Every record entering ContextSeek is expected to be:
 
 | Guarantee | Mechanism |
 |-----------|-----------|
@@ -197,7 +197,7 @@ Every record entering SeekContext is expected to be:
 | **Traceable** | Mandatory `provenance`; `links`; audit APIs |
 | **Evolvable** | `stage` pipeline; `compact()` / `dream()` |
 
-Data without an identifiable source, data that will never be searched, or throwaway buffers should stay outside SeekContext (Redis session cache, raw log files, etc.).
+Data without an identifiable source, data that will never be searched, or throwaway buffers should stay outside ContextSeek (Redis session cache, raw log files, etc.).
 
 ---
 
