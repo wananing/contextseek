@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from contextseek.domain.context_item import ContextItem
 from contextseek.domain.evidence_chain import (
-    EvidenceChain,
     compute_chain_confidence,
     compute_evidence_chain,
 )

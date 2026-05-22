@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable
+from typing import Callable
 
 from contextseek.domain.context_item import ContextItem
 

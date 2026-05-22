@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Iterator
 
-from contextseek.protocols.plugs import DataPlug, PlugMeta, RawEvent
+from contextseek.protocols.plugs import PlugMeta, RawEvent
 
 
 @dataclass

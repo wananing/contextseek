@@ -7,7 +7,7 @@ aggregation for supporting links and additive penalty for refutations.
 from __future__ import annotations
 
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable
 
 from contextseek.domain.context_item import ContextItem

@@ -1,7 +1,5 @@
 """Tests for ContextItem domain model."""
 
-from datetime import datetime, timezone
-
 from contextseek.domain.context_item import ContextItem, _generate_id, _utc_now
 from contextseek.domain.links import Link, LinkType
 from contextseek.domain.provenance import Provenance, SourceType

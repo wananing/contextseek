@@ -11,7 +11,6 @@ from contextseek.evolution.dreaming import (
     ConsolidationEngine,
     ConsolidationResult,
     DivergenceEngine,
-    DivergenceResult,
     DreamEngine,
     DreamReport,
 )
@@ -249,7 +248,7 @@ class TestDivergenceEngine:
         if result.items:
             hyp = result.items[0]
             assert len(hyp.links) == 2
-            link_targets = {l.target_id for l in hyp.links}
+            link_targets = {lnk.target_id for lnk in hyp.links}
             assert cluster_a[0].id in link_targets
             assert cluster_b[0].id in link_targets
             for link in hyp.links:
@@ -332,7 +331,7 @@ class TestDreamEngine:
         ]
 
         # First dream should work
-        report1 = engine.dream(items)
+        engine.dream(items)
         # Second dream should be blocked by cooldown
         report2 = engine.dream(items)
         assert report2.total_dream_items == 0

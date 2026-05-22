@@ -1,7 +1,5 @@
 """Tests for audit logging."""
 
-from datetime import datetime, timezone
-
 from contextseek.observability.audit import AuditLog, AuditRecord, MetricPoint
 
 

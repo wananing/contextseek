@@ -14,7 +14,7 @@ import itertools
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Callable
+from typing import Callable
 
 from contextseek.config.strategies import DreamStrategy
 from contextseek.domain.context_item import ContextItem, _generate_id, _utc_now

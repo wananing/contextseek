@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 from contextseek.domain.links import LinkType
 from contextseek.domain.stages import Stage

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from contextseek.domain.context_item import ContextItem
 from contextseek.domain.invalidation import (
-    DegradedItem,
     InvalidationResult,
     propagate_invalidation,
 )

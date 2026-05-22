@@ -8,6 +8,7 @@ import json
 import sys
 from dataclasses import dataclass
 from typing import Any
+from uuid import uuid4
 
 from contextseek._version import __version__ as PACKAGE_VERSION
 from contextseek.mcp.server import ContextSeekMCPServer

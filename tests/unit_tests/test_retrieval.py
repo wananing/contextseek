@@ -3,7 +3,6 @@
 from contextseek.retrieval.components import (
     DefaultRecallRoute,
     HeuristicReranker,
-    RecallQuery,
     tokens,
 )
 from contextseek.config.strategies import RetrievalStrategy

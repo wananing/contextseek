@@ -17,11 +17,14 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
-from typing import Any, Callable, Iterator
+from typing import TYPE_CHECKING, Any, Callable, Iterator
 from uuid import uuid4
 
+if TYPE_CHECKING:
+    from contextseek.scope import ScopeStats, ScopeTree
+
 from contextseek.storage.protocol import SeekVFSAdapter
-from contextseek.protocols.plugs import DataPlug, PlugMeta, RawEvent
+from contextseek.protocols.plugs import DataPlug, PlugMeta
 from contextseek.domain.context_item import ContextItem
 from contextseek.domain.conflicts import ConflictType
 from contextseek.domain.inference import (
@@ -31,7 +34,7 @@ from contextseek.domain.inference import (
     infer_stability,
 )
 from contextseek.domain.links import Link, LinkType
-from contextseek.domain.provenance import Provenance, SourceType
+from contextseek.domain.provenance import SourceType
 from contextseek.domain.results import (
     CompactReport,
     EvolutionReport,
@@ -439,7 +442,6 @@ class ContextSeek:
 
             # Tag near-duplicates and contradictions for visibility
             if result.has_conflicts:
-                conflict_ids = [c.existing_item_id for c in result.conflicts]
                 if any(
                     c.conflict_type == ConflictType.contradiction
                     for c in result.conflicts
@@ -888,7 +890,6 @@ class ContextSeek:
             ValueError: If the starting item does not exist.
         """
         from contextseek.domain.evidence_chain import (
-            EvidenceChain as EvidenceChainResult,
             compute_evidence_chain,
         )
 
@@ -1266,7 +1267,7 @@ class ContextSeek:
             A :class:`~contextseek.scope.ScopeTree` whose ``.print()`` renders
             an annotated directory tree with item/knowledge/skill counts.
         """
-        from contextseek.scope import ScopeTree, build_scope_tree
+        from contextseek.scope import build_scope_tree
 
         prefix = self.resolver.prefix_for(root) if root else "contextseek://"
         refs = self.adapter.ls(prefix)
@@ -1566,7 +1567,6 @@ class ContextSeek:
         if path is None:
             return cls()
 
-        import json
         from pathlib import Path as FilePath
 
         config_path = FilePath(path)
@@ -2003,7 +2003,6 @@ class ContextSeek:
     def _propagate_invalidation(self, deleted_item: ContextItem, scope: str):
         """Run invalidation propagation after a soft-delete."""
         from contextseek.domain.invalidation import (
-            InvalidationResult,
             propagate_invalidation,
         )
 

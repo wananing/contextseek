@@ -247,7 +247,7 @@ class TestAfterModel:
         )
         ctx.add.assert_called_once()
         kwargs = ctx.add.call_args.kwargs
-        assert kwargs["content"] == "reply"
+        assert kwargs["content"] == "Q: hi\nA: reply"
         assert kwargs["scope"] == "s"
         assert kwargs["source"] == "agent_response"
         assert kwargs["source_type"] == SourceType.agent_inference

@@ -5,7 +5,7 @@ Migrated from trace/pipeline.py and adapted for ContextItem.
 
 from __future__ import annotations
 
-from typing import Any, Callable, Protocol
+from typing import Callable, Protocol
 
 from contextseek.domain.context_item import ContextItem, _generate_id, _utc_now
 from contextseek.domain.links import Link, LinkType

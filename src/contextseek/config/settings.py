@@ -32,7 +32,10 @@ Usage::
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from contextseek.config.strategies import StrategyConfig
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict

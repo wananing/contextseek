@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import os
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -263,7 +261,7 @@ class TestFromSettings:
             storage=StorageSettings(backend="file", path=str(tmp_path / "store")),
         )
         ctx = ContextSeek.from_settings(settings)
-        item = ctx.add("file backend test", scope="t/p/u", source="test")
+        ctx.add("file backend test", scope="t/p/u", source="test")
         response = ctx.retrieve("file", scope="t/p/u")
         assert len(response) >= 1
 

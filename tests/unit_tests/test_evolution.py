@@ -3,7 +3,6 @@
 from datetime import datetime, timezone, timedelta
 
 from contextseek.domain.context_item import ContextItem, _generate_id, _utc_now
-from contextseek.domain.links import Link, LinkType
 from contextseek.domain.provenance import Provenance, SourceType
 from contextseek.domain.stages import Stage, Stability
 from contextseek.evolution.distiller import SkillDistiller
