@@ -164,7 +164,7 @@ class RetrievalOrchestrator:
 
         # ─── Rerank ───────────────────────────────────────────────
         reranked = reranker.rerank(
-            list(merged.values()), query=query, strategy=strategy
+            list(merged.values()), query=query, strategy=strategy, geo_query=geo_query
         )
         limited = reranked[:k]
 
