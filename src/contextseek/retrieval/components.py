@@ -249,7 +249,7 @@ class HeuristicReranker:
             except (TypeError, ValueError):
                 importance = 1.0
             importance = max(importance, strategy.importance_floor)
-            base *= importance ** strategy.importance_alpha
+            base *= importance**strategy.importance_alpha
         return round(base, 6)
 
 

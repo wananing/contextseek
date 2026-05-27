@@ -711,14 +711,24 @@ class OceanBaseBackend(BackendProtocol):
 
         for rank, hit in enumerate(vec_hits, 1):
             doc_id = hit["_db_id"]
-            all_docs[doc_id] = {**hit, "_vec_rank": rank, "_fts_rank": None, "_rrf": 0.0}
+            all_docs[doc_id] = {
+                **hit,
+                "_vec_rank": rank,
+                "_fts_rank": None,
+                "_rrf": 0.0,
+            }
 
         for rank, hit in enumerate(fts_hits, 1):
             doc_id = hit["_db_id"]
             if doc_id in all_docs:
                 all_docs[doc_id]["_fts_rank"] = rank
             else:
-                all_docs[doc_id] = {**hit, "_vec_rank": None, "_fts_rank": rank, "_rrf": 0.0}
+                all_docs[doc_id] = {
+                    **hit,
+                    "_vec_rank": None,
+                    "_fts_rank": rank,
+                    "_rrf": 0.0,
+                }
 
         # Adaptive weight normalization (per-document fairness, à la powermem):
         # Re-normalize each document's weights to sum to 1.0 based on how many
@@ -760,7 +770,7 @@ class OceanBaseBackend(BackendProtocol):
         if self._importance_alpha > 0.0:
             for doc in all_docs.values():
                 imp = _parse_importance(doc)
-                doc["_sort_key"] = doc["_rrf"] * (imp ** self._importance_alpha)
+                doc["_sort_key"] = doc["_rrf"] * (imp**self._importance_alpha)
         else:
             for doc in all_docs.values():
                 doc["_sort_key"] = doc["_rrf"]
