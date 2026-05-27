@@ -51,19 +51,6 @@ Configure via `.env` (see [.env.example](.env.example)) or `ContextSeekSettings`
 - [Examples](examples/README.md): annotated scripts for common workflows.
 - [AppWorld eval](eval/appworld/README.md) / [τ-bench eval](eval/taubench/README.md): optional evaluation harnesses with their own setup requirements.
 
-```python
-from langchain.agents import create_agent
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from contextseek.bridges.langchain import ContextSeekMiddleware
-
-model = ChatOpenAI(model="gpt-4o")
-agent = create_agent(
-    model=model,
-    tools=[...],
-    middleware=[ContextSeekMiddleware(model=model, embedder=OpenAIEmbeddings())],
-)
-```
-
 ## How it works
 
 - **Unified object model** — all context — memory, knowledge, traces, skills — is a `ContextItem`. Items carry mandatory `Provenance` (source type, source id, confidence) and typed `Link` edges (supports, refutes, derives, supersedes), enabling a full `EvidenceChain` DAG with confidence propagation.

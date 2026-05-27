@@ -49,19 +49,6 @@ for hit in ctx.retrieve("分布式数据库", scope="acme/db/engineer", k=10):
 - [示例](examples/README.md)：常见工作流的完整示例脚本。
 - [AppWorld 评测](eval/appworld/README.md) / [τ-bench 评测](eval/taubench/README.md)：可选评测脚手架，有独立的依赖与配置要求。
 
-```python
-from langchain.agents import create_agent
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from contextseek.bridges.langchain import ContextSeekMiddleware
-
-model = ChatOpenAI(model="gpt-4o")
-agent = create_agent(
-    model=model,
-    tools=[...],
-    middleware=[ContextSeekMiddleware(model=model, embedder=OpenAIEmbeddings())],
-)
-```
-
 ## 工作原理
 
 - **统一对象模型** — 记忆、知识、轨迹、技能全部是 `ContextItem`。每条条目携带强制 `Provenance`（来源类型、来源 id、置信度）和有类型的 `Link` 边（支持、反驳、衍生、替代），支持构建完整的 `EvidenceChain` DAG 及置信度传播。
