@@ -6,18 +6,29 @@ Falls back gracefully with a clear ImportError when pyseekdb is not installed.
 
 from __future__ import annotations
 
-import fnmatch
 import contextlib
+import fnmatch
 import io
 import json
 import pathlib
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from seekvfs import BackendProtocol
 from seekvfs.exceptions import NotFoundError
 from seekvfs.models import FileData, FileInfo, GrepMatch, SearchHit, SearchResult
+
+from contextseek.storage._backend_utils import (
+    _HOISTED,
+    _json_safe,
+    _merge_hoisted,
+    _namespace_of,
+    _parse_updated_at,
+    _prefix_from_pattern,
+    _serialize_dt,
+)
+from contextseek.storage.protocol import SyncCapableMixin
 
 
 def _split_scheme(path: str) -> tuple[str, str]:
@@ -27,7 +38,7 @@ def _split_scheme(path: str) -> tuple[str, str]:
     return path[: i + 3], path[i + 3 :]
 
 
-class SeekDBBackend(BackendProtocol):
+class SeekDBBackend(SyncCapableMixin, BackendProtocol):
     """seekvfs backend backed by a pyseekdb collection.
 
     Args:
@@ -39,6 +50,14 @@ class SeekDBBackend(BackendProtocol):
         embedding_function: Optional pyseekdb-compatible embedding function.
             When ``None``, ``pyseekdb.get_default_embedding_function()`` is used
             (built-in all-MiniLM-L6-v2 via ONNX, no external API key required).
+        vector_weight: Weight for vector similarity in hybrid search (interface
+            alignment; seekdb uses native RRF, so this value is not directly applied).
+        fts_weight: Weight for FTS in hybrid search (interface alignment only).
+        rrf_k: Reciprocal Rank Fusion window size, mapped to
+            ``rank_window_size`` / ``rank_constant`` in ``hybrid_search``.
+        importance_alpha: Importance score exponent (interface alignment; not
+            supported by seekdb's hybrid_search API).
+        importance_floor: Minimum importance floor (interface alignment only).
     """
 
     def __init__(
@@ -48,12 +67,22 @@ class SeekDBBackend(BackendProtocol):
         host: str = "",
         port: int = 2881,
         embedding_function: Any = None,
+        vector_weight: float = 0.7,
+        fts_weight: float = 0.3,
+        rrf_k: int = 60,
+        importance_alpha: float = 0.5,
+        importance_floor: float = 0.1,
     ) -> None:
         self._path = str(pathlib.Path(path).expanduser())
         self._database = database
         self._host = host
         self._port = port
         self._ef = embedding_function
+        self._vector_weight = float(vector_weight)
+        self._fts_weight = float(fts_weight)
+        self._rrf_k = int(rrf_k)
+        self._importance_alpha = float(importance_alpha)
+        self._importance_floor = float(importance_floor)
         self._collection: Any = None
         self._client: Any = None
         self._lock = threading.Lock()
@@ -115,32 +144,6 @@ class SeekDBBackend(BackendProtocol):
     # Write / Read / Delete
     # ------------------------------------------------------------------
 
-    @staticmethod
-    def _index_text(payload: dict[str, Any]) -> str:
-        """Pick the text the vector / FTS index should be built over.
-
-        Prefers the L0 abstract, then the L1 summary, then the raw content —
-        so the index reflects what the item *means* rather than the full JSON
-        envelope (embedding arrays, provenance, timestamps).
-        """
-        for key in ("abstract", "summary"):
-            val = payload.get(key)
-            if isinstance(val, str) and val.strip():
-                return val
-        content = payload.get("content")
-        if isinstance(content, str):
-            return content
-        if isinstance(content, dict):
-            for key in ("body", "description", "text", "content"):
-                val = content.get(key)
-                if isinstance(val, str) and val.strip():
-                    return val
-            try:
-                return json.dumps(content, ensure_ascii=False)
-            except (TypeError, ValueError):
-                return str(content)
-        return str(content) if content is not None else ""
-
     def write(self, path: str, content: bytes | str) -> None:
         doc = content.decode("utf-8") if isinstance(content, bytes) else content
         try:
@@ -148,32 +151,73 @@ class SeekDBBackend(BackendProtocol):
         except (json.JSONDecodeError, TypeError):
             payload = None
 
-        _, bare = _split_scheme(path)
-        metadata: dict[str, Any] = {"bare_path": bare, "payload": doc}
+        now = datetime.now(tz=UTC).isoformat()
+        namespace = _namespace_of(path)
 
         if isinstance(payload, dict):
-            metadata["scope"] = str(payload.get("scope", ""))
-            metadata["stage"] = str(payload.get("stage", ""))
-            metadata["searchable"] = 1 if payload.get("searchable", True) else 0
-            metadata["created_at"] = str(payload.get("created_at") or "")
-            if payload.get("hash"):
-                metadata["hash"] = str(payload["hash"])
-            index_text = self._index_text(payload)
+            abstract = str(payload.get("abstract") or "")
+            summary = str(payload.get("summary") or "")
+            raw_content = payload.get("content")
+            text_content = (
+                json.dumps(raw_content, ensure_ascii=False)
+                if isinstance(raw_content, (dict, list))
+                else str(raw_content or "")
+            )
+            # FTS surface: prefer abstract+summary; fall back to full text.
+            fulltext_content = f"{abstract} {summary}".strip() or text_content
+            payload_slim = {k: v for k, v in payload.items() if k not in _HOISTED}
             embedding = payload.get("embedding")
+
+            metadata: dict[str, Any] = {
+                "namespace": namespace,
+                "updated_at": now,
+                "content": text_content,
+                "abstract": abstract,
+                "summary": summary,
+                "payload_json": json.dumps(_json_safe(payload_slim), ensure_ascii=False),
+                "scope": str(payload.get("scope") or ""),
+                "stage": str(payload.get("stage") or ""),
+                "searchable": 1 if payload.get("searchable", True) else 0,
+                "hash": str(payload.get("hash") or ""),
+                "created_at": _serialize_dt(payload.get("created_at")) or now,
+            }
         else:
-            metadata["scope"] = ""
-            metadata["searchable"] = 1
-            index_text = doc
+            fulltext_content = doc
             embedding = None
+            metadata = {
+                "namespace": namespace,
+                "updated_at": now,
+                "content": doc,
+                "abstract": "",
+                "summary": "",
+                "payload_json": "{}",
+                "scope": "",
+                "stage": "",
+                "searchable": 1,
+                "hash": "",
+                "created_at": now,
+            }
 
         with self._lock:
             kwargs: dict[str, Any] = {
                 "ids": [path],
-                "documents": [index_text],
+                "documents": [fulltext_content],
                 "metadatas": [metadata],
             }
             if isinstance(embedding, list) and embedding:
                 kwargs["embeddings"] = [embedding]
+            elif self._collection.embedding_function is not None:
+                # No pre-computed embedding: vectorize abstract (falling back to
+                # summary → fulltext_content) to mirror OceanBase's abstract_embedding
+                # column, which is always the embedding of the abstract-level text.
+                embed_text = abstract or summary or fulltext_content
+                if embed_text:
+                    try:
+                        vecs = self._collection.embedding_function([embed_text])
+                        if vecs and len(vecs) > 0:
+                            kwargs["embeddings"] = [vecs[0]]
+                    except Exception:
+                        pass  # fall through: let pyseekdb vectorize documents as fallback
             self._collection.upsert(**kwargs)
 
     # ------------------------------------------------------------------
@@ -191,14 +235,12 @@ class SeekDBBackend(BackendProtocol):
             "(scope VARCHAR(512) NOT NULL, hash CHAR(64) NOT NULL, "
             "PRIMARY KEY (scope, hash))"
         )
-        # Per-file ingest records for the mtime fast-path (SHA256 authoritative).
         self._sql(
             "CREATE TABLE IF NOT EXISTS contextseek_sync_files "
             "(scope VARCHAR(512) NOT NULL, path_hash CHAR(64) NOT NULL, "
             "path VARCHAR(1024) NOT NULL, mtime DOUBLE NOT NULL, "
             "content_hash CHAR(64) NOT NULL, PRIMARY KEY (scope, path_hash))"
         )
-        # Key/value metadata (e.g. the embedding dimensionality in use).
         self._sql(
             "CREATE TABLE IF NOT EXISTS contextseek_meta "
             "(k VARCHAR(128) NOT NULL, v VARCHAR(512) NOT NULL, PRIMARY KEY (k))"
@@ -264,8 +306,28 @@ class SeekDBBackend(BackendProtocol):
         return {row[0]: (float(row[1]), row[2]) for row in rows}
 
     def visible_count_for_scope(self, scope: str) -> int:
-        """Return the number of items visible under the current metadata schema."""
-        return len(self._list_ids_for_scope(scope))
+        """Return the number of searchable items in *scope*."""
+        batch_size = 1000
+        offset = 0
+        count = 0
+        while True:
+            result = self._collection.get(
+                where={
+                    "$and": [
+                        {"scope": {"$eq": scope}},
+                        {"searchable": {"$eq": 1}},
+                    ]
+                },
+                include=[],
+                limit=batch_size,
+                offset=offset,
+            )
+            ids = result.get("ids") or []
+            count += len(ids)
+            if len(ids) < batch_size:
+                break
+            offset += batch_size
+        return count
 
     def sync_file_record(
         self, scope: str, path: str, mtime: float, content_hash: str
@@ -288,10 +350,21 @@ class SeekDBBackend(BackendProtocol):
         metas = result.get("metadatas") or []
         if not metas or metas[0] is None:
             raise NotFoundError(path)
-        payload = metas[0].get("payload")
-        if payload is None:
-            raise NotFoundError(path)
-        return FileData(payload.encode("utf-8"), "utf-8")
+        meta = metas[0]
+        # Backward compat: fall back to old "payload" field when new fields absent.
+        payload_json = meta.get("payload_json") or meta.get("payload") or "{}"
+        full = _merge_hoisted(
+            payload_json,
+            meta.get("content"),
+            meta.get("abstract"),
+            meta.get("summary"),
+            None,
+            scope=meta.get("scope"),
+            stage=meta.get("stage"),
+            searchable=meta.get("searchable"),
+            hash_val=meta.get("hash"),
+        )
+        return FileData(json.dumps(full, ensure_ascii=False).encode("utf-8"), "utf-8")
 
     def read_full(self, path: str) -> FileData:
         return self.read(path)
@@ -304,9 +377,23 @@ class SeekDBBackend(BackendProtocol):
         metas = result.get("metadatas") or []
         out: dict[str, FileData] = {}
         for id_, meta in zip(ids, metas):
-            payload = (meta or {}).get("payload")
-            if payload is not None:
-                out[id_] = FileData(payload.encode("utf-8"), "utf-8")
+            if meta is None:
+                continue
+            payload_json = meta.get("payload_json") or meta.get("payload") or "{}"
+            full = _merge_hoisted(
+                payload_json,
+                meta.get("content"),
+                meta.get("abstract"),
+                meta.get("summary"),
+                None,
+                scope=meta.get("scope"),
+                stage=meta.get("stage"),
+                searchable=meta.get("searchable"),
+                hash_val=meta.get("hash"),
+            )
+            out[id_] = FileData(
+                json.dumps(full, ensure_ascii=False).encode("utf-8"), "utf-8"
+            )
         return out
 
     def delete(self, path: str) -> None:
@@ -327,41 +414,6 @@ class SeekDBBackend(BackendProtocol):
         bare = bare.strip("/")
         return bare or None
 
-    def _list_ids_for_scope(self, scope_key: str) -> list[str]:
-        """List collection ids for one scope via metadata index (not a full scan)."""
-        all_ids: list[str] = []
-        batch_size = 1000
-        offset = 0
-        while True:
-            result = self._collection.get(
-                where={"scope": {"$eq": scope_key}},
-                include=[],
-                limit=batch_size,
-                offset=offset,
-            )
-            ids = result.get("ids") or []
-            if not ids:
-                break
-            all_ids.extend(ids)
-            if len(ids) < batch_size:
-                break
-            offset += batch_size
-        return all_ids
-
-    def _list_all_ids(self) -> list[str]:
-        """List all ids in the collection, used only for root-level listings."""
-        total = self._collection.count()
-        all_ids: list[str] = []
-        batch_size = 1000
-        for offset in range(0, total, batch_size):
-            result = self._collection.get(
-                include=[],
-                limit=batch_size,
-                offset=offset,
-            )
-            all_ids.extend(result.get("ids") or [])
-        return all_ids
-
     @staticmethod
     def _bare_path(path: str) -> str:
         """Return a stored id/path without its URI scheme."""
@@ -377,23 +429,37 @@ class SeekDBBackend(BackendProtocol):
         prefix = self._bare_path(path)
         prefix = prefix if prefix.endswith("/") else prefix + "/"
         scope_key = self._scope_from_list_path(path)
-        if scope_key:
-            all_ids = self._list_ids_for_scope(scope_key)
-        else:
-            all_ids = self._list_all_ids()
 
-        now = datetime.now(tz=timezone.utc)
+        all_items: list[tuple[str, dict]] = []
+        batch_size = 1000
+        offset = 0
+        while True:
+            result = self._collection.get(
+                where=({"scope": {"$eq": scope_key}} if scope_key else None),
+                include=["metadatas"],
+                limit=batch_size,
+                offset=offset,
+            )
+            ids = result.get("ids") or []
+            metas = result.get("metadatas") or []
+            for id_, meta in zip(ids, metas):
+                all_items.append((id_, meta or {}))
+            if len(ids) < batch_size:
+                break
+            offset += batch_size
+
         out: list[FileInfo] = []
-        for id_ in all_ids:
+        for id_, meta in all_items:
             bare = self._bare_path(id_)
             if not bare.startswith(prefix):
                 continue
-            rel = bare[len(prefix) :]
+            rel = bare[len(prefix):]
             if not recursive and "/" in rel:
                 continue
             if pattern is not None and not fnmatch.fnmatch(rel, pattern):
                 continue
-            out.append(FileInfo(path=id_, size=0, mtime=now, is_dir=False))
+            mtime = _parse_updated_at(meta.get("updated_at"))
+            out.append(FileInfo(path=id_, size=0, mtime=mtime, is_dir=False))
         out.sort(key=lambda fi: fi.path)
         return out
 
@@ -401,7 +467,7 @@ class SeekDBBackend(BackendProtocol):
         """Return the path of an item whose payload hash matches *hash_value*.
 
         Uses metadata filtering (O(1) index lookup) instead of a full document
-        scan.  Returns ``None`` when no match exists or the collection is empty.
+        scan. Returns ``None`` when no match exists or the collection is empty.
         """
         if not hash_value:
             return None
@@ -435,30 +501,19 @@ class SeekDBBackend(BackendProtocol):
         if total == 0:
             return SearchResult(query=query, hits=[], searched_paths=[])
 
-        n = max(1, min(limit * 3, total))  # over-fetch to allow path filtering
+        n = max(1, min(limit * 3, total))
 
-        def _run_query(where: dict[str, Any] | None) -> Any:
-            kwargs: dict[str, Any] = {
-                "n_results": n,
-                "include": ["metadatas", "distances"],
-            }
-            if where is not None:
-                kwargs["where"] = where
-            if query_embedding is not None:
-                kwargs["query_embeddings"] = [query_embedding]
-            else:
-                kwargs["query_texts"] = [query] if query else None
-            return self._collection.query(**kwargs)
+        # Derive scope filter from path_pattern so ANN/FTS recall is scoped
+        # at the index level rather than relying on post-result fnmatch alone.
+        prefix = _prefix_from_pattern(path_pattern)
+        scope_key = self._scope_from_list_path(prefix) if prefix else None
 
-        # Prefer to drop soft-deleted items at the index level. Fall back to an
-        # unfiltered query when the predicate is unsupported or matches nothing
-        # (e.g. a pre-existing collection written before `searchable` metadata).
-        try:
-            result = _run_query({"searchable": {"$eq": 1}})
-            if not (result.get("ids") or [[]])[0]:
-                result = _run_query(None)
-        except Exception:
-            result = _run_query(None)
+        if query_embedding is not None and query.strip():
+            result = self._hybrid_search(query_embedding, query, n, scope_key)
+        elif query_embedding is not None:
+            result = self._vector_only_search(query_embedding, n, scope_key)
+        else:
+            result = self._fts_only_search(query, n, scope_key)
 
         ids_list: list[str] = (result.get("ids") or [[]])[0]
         metas_list: list[dict] = (result.get("metadatas") or [[]])[0]
@@ -471,29 +526,108 @@ class SeekDBBackend(BackendProtocol):
             score = max(0.0, 1.0 - float(dist))
             if score_threshold is not None and score < score_threshold:
                 continue
-            snippet = (meta or {}).get("payload") or ""
+            meta = meta or {}
+            payload_json = meta.get("payload_json") or meta.get("payload") or "{}"
+            full = _merge_hoisted(
+                payload_json,
+                meta.get("content"),
+                meta.get("abstract"),
+                meta.get("summary"),
+                None,
+                scope=meta.get("scope"),
+                stage=meta.get("stage"),
+                searchable=meta.get("searchable"),
+                hash_val=meta.get("hash"),
+            )
+            snippet = json.dumps(full, ensure_ascii=False)
             hits.append(SearchHit(path=id_, snippet=snippet, score=score))
 
         return SearchResult(query=query, hits=hits[:limit], searched_paths=ids_list)
+
+    @staticmethod
+    def _build_where(scope_key: str | None) -> dict:
+        """Build a pyseekdb `where` dict combining searchable=1 and optional scope."""
+        base = {"searchable": {"$eq": 1}}
+        if scope_key:
+            return {"$and": [base, {"scope": {"$eq": scope_key}}]}
+        return base
+
+    def _hybrid_search(
+        self, query_embedding: list[float], query: str, n: int,
+        scope_key: str | None = None,
+    ) -> Any:
+        """Run hybrid vector+FTS search using pyseekdb's native hybrid_search."""
+        where = self._build_where(scope_key)
+        try:
+            return self._collection.hybrid_search(
+                knn={
+                    "query_embeddings": [query_embedding],
+                    "n_results": n,
+                    "where": where,
+                },
+                query={
+                    "where_document": {"$contains": query},
+                    "n_results": n,
+                    "where": where,
+                },
+                rank={
+                    "rrf": {
+                        "rank_window_size": self._rrf_k,
+                        "rank_constant": self._rrf_k,
+                    }
+                },
+                n_results=n,
+                include=["metadatas", "distances"],
+            )
+        except Exception:
+            # Fall back to vector-only search if hybrid_search is unavailable.
+            return self._vector_only_search(query_embedding, n, scope_key)
+
+    def _vector_only_search(
+        self, query_embedding: list[float], n: int, scope_key: str | None = None
+    ) -> Any:
+        where = self._build_where(scope_key)
+        try:
+            return self._collection.query(
+                query_embeddings=[query_embedding],
+                n_results=n,
+                include=["metadatas", "distances"],
+                where=where,
+            )
+        except Exception:
+            return {"ids": [[]], "metadatas": [[]], "distances": [[]]}
+
+    def _fts_only_search(
+        self, query: str, n: int, scope_key: str | None = None
+    ) -> Any:
+        where = self._build_where(scope_key)
+        try:
+            return self._collection.query(
+                query_texts=[query],
+                n_results=n,
+                include=["metadatas", "distances"],
+                where=where,
+                where_document={"$contains": query},
+            )
+        except Exception:
+            return {"ids": [[]], "metadatas": [[]], "distances": [[]]}
 
     # ------------------------------------------------------------------
     # Optional helpers
     # ------------------------------------------------------------------
 
     def edit(self, path: str, old: str, new: str) -> int:
-        result = self._collection.get(ids=[path], include=["metadatas"])
-        metas = result.get("metadatas") or []
-        if not metas or metas[0] is None:
-            raise NotFoundError(path)
-        payload = metas[0].get("payload")
-        if payload is None:
-            raise NotFoundError(path)
-        count = payload.count(old)
+        """Edit a stored item by replacing *old* with *new* in its content."""
+        # Use read() to get the fully reconstructed payload, then write back.
+        try:
+            file_data = self.read(path)
+        except NotFoundError:
+            raise
+        current_json = file_data.content.decode("utf-8")
+        count = current_json.count(old)
         if count == 0:
             return 0
-        # Re-derive the index text and metadata from the edited payload so the
-        # stored document and the full JSON stay consistent.
-        self.write(path, payload.replace(old, new))
+        self.write(path, current_json.replace(old, new))
         return count
 
     def grep(
@@ -508,10 +642,13 @@ class SeekDBBackend(BackendProtocol):
         for id_, meta in zip(ids, metas):
             if path_pattern and not fnmatch.fnmatch(id_, path_pattern):
                 continue
-            payload = (meta or {}).get("payload")
-            if not payload:
+            meta = meta or {}
+            # Match on the hoisted `content` field; fall back to old `payload` for
+            # backward compatibility with data written before the schema migration.
+            text = meta.get("content") or meta.get("payload") or ""
+            if not text:
                 continue
-            for idx, line in enumerate(payload.splitlines(), start=1):
+            for idx, line in enumerate(text.splitlines(), start=1):
                 if pattern in line:
                     out.append(GrepMatch(path=id_, line_number=idx, line=line))
         return out

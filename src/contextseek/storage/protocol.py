@@ -90,6 +90,42 @@ class GeoSearchMixin:
         return False
 
 
+class SyncCapableMixin:
+    """Mixin that marks a backend as supporting O(1) sync-table operations.
+
+    Both ``SeekDBBackend`` and ``OceanBaseBackend`` inherit this mixin.
+    Calling code detects sync capability via ``isinstance(backend, SyncCapableMixin)``
+    rather than a rigid class check.
+
+    All methods have safe default no-op implementations so that backends that
+    have not yet created the sync tables remain functional.
+    """
+
+    def ensure_sync_table(self) -> None: ...
+
+    def meta_get(self, key: str) -> str | None:
+        return None
+
+    def meta_set(self, key: str, value: str) -> None: ...
+
+    def sync_hashes_for_scope(self, scope: str) -> set[str]:
+        return set()
+
+    def sync_hash_add(self, scope: str, hash_val: str) -> None: ...
+
+    def sync_hashes_add_batch(self, scope: str, hashes: set[str]) -> None: ...
+
+    def sync_files_for_scope(self, scope: str) -> dict[str, tuple[float, str]]:
+        return {}
+
+    def sync_file_record(
+        self, scope: str, path: str, mtime: float, content_hash: str
+    ) -> None: ...
+
+    def visible_count_for_scope(self, scope: str) -> int:
+        return 0
+
+
 class VectorSearchMixin:
     """Mixin that adds vector_search to adapters backed by a vector store.
 

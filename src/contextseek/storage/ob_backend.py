@@ -29,6 +29,19 @@ from seekvfs.models import GrepMatch
 from seekvfs.models import SearchHit
 from seekvfs.models import SearchResult
 
+from contextseek.storage._backend_utils import (
+    _HOISTED,
+    _escape_like,
+    _json_safe,
+    _merge_hoisted,
+    _namespace_of,
+    _parse_updated_at,
+    _parse_vector,
+    _prefix_from_pattern,
+    _serialize_dt,
+)
+from contextseek.storage.protocol import SyncCapableMixin
+
 try:
     from pyobvector import FtsIndexParam
     from pyobvector import FtsParser
@@ -45,9 +58,12 @@ try:
     from sqlalchemy import String
     from sqlalchemy import Table
     from sqlalchemy import bindparam
+    from sqlalchemy import func
+    from sqlalchemy import or_
     from sqlalchemy import select
     from sqlalchemy import text
     from sqlalchemy.dialects.mysql import LONGTEXT
+    from sqlalchemy.dialects.mysql import TINYINT
 except ImportError as exc:  # pragma: no cover - import guard
     raise ImportError(
         "OceanBaseBackend requires pyobvector and sqlalchemy. "
@@ -84,92 +100,6 @@ def _snowflake_id() -> int:
             _SNOWFLAKE_SEQ = 0
             _SNOWFLAKE_LAST = ts
         return (ts << 22) | _SNOWFLAKE_SEQ
-
-
-def _namespace_of(ref: str) -> str:
-    if "/" not in ref:
-        return ref
-    return ref.rsplit("/", 1)[0] + "/"
-
-
-def _serialize_dt(v: Any) -> str:
-    if isinstance(v, datetime):
-        return v.isoformat()
-    if v is None:
-        return ""
-    return str(v)
-
-
-def _json_safe(payload: dict[str, Any]) -> dict[str, Any]:
-    """Round-trip through json to coerce datetimes (and other non-JSON types) safely."""
-
-    def _default(o: Any) -> Any:
-        if isinstance(o, datetime):
-            return o.isoformat()
-        return str(o)
-
-    return json.loads(json.dumps(payload, default=_default))
-
-
-_HOISTED: frozenset[str] = frozenset({"embedding", "content", "abstract", "summary"})
-"""Fields stored in dedicated columns; stripped from payload_json on write."""
-
-
-def _parse_vector(v: Any) -> list[float] | None:
-    """Coerce an OceanBase VECTOR column value to a Python list of floats.
-
-    pyobvector's result_processor returns numpy ndarray; we convert it to a
-    plain Python list so downstream code does not depend on numpy.
-    """
-    if v is None:
-        return None
-    if hasattr(v, "tolist"):
-        try:
-            return [float(x) for x in v.tolist()]
-        except (TypeError, ValueError):
-            return None
-    if isinstance(v, list):
-        try:
-            return [float(x) for x in v]
-        except (TypeError, ValueError):
-            return None
-    return None
-
-
-def _merge_hoisted(
-    payload_json: Any,
-    content: str | None,
-    abstract: str | None,
-    summary: str | None,
-    abstract_embedding: Any,
-) -> dict[str, Any]:
-    """Reconstruct a full payload dict by merging hoisted column values back in.
-
-    ``payload_json`` is the slim JSON stored in the DB (hoisted fields stripped).
-    The remaining args come from their dedicated columns and are merged back so
-    callers get a complete payload identical to what was originally written.
-    """
-    if isinstance(payload_json, str):
-        d: dict[str, Any] = json.loads(payload_json) if payload_json else {}
-    elif isinstance(payload_json, dict):
-        d = dict(payload_json)
-    else:
-        d = {}
-    if content:
-        try:
-            d["content"] = json.loads(content)
-        except (json.JSONDecodeError, TypeError):
-            d["content"] = content
-    else:
-        d["content"] = ""
-    d["abstract"] = abstract or ""
-    d["summary"] = summary or ""
-    emb = _parse_vector(abstract_embedding)
-    if emb is not None:
-        d["embedding"] = emb
-    else:
-        d.pop("embedding", None)
-    return d
 
 
 def _distance_func(metric: str):
@@ -210,34 +140,7 @@ def _fts_parser_enum(parser_name: str):
     return _FTS_PARSER_MAP[key]
 
 
-def _prefix_from_pattern(path_pattern: str | None) -> str | None:
-    """Strip a single trailing ``*`` from a glob pattern to derive a prefix.
-
-    ``seekvfs://ns/*`` → ``seekvfs://ns/``. ``None`` is passed through.
-    """
-    if path_pattern is None:
-        return None
-    return path_pattern.removesuffix("*")
-
-
-def _escape_like(value: str) -> str:
-    """Escape SQL LIKE wildcards so user input is matched literally."""
-    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-
-
-def _parse_updated_at(updated_at: Any) -> datetime:
-    if not updated_at:
-        return datetime.now(tz=UTC)
-    try:
-        dt = datetime.fromisoformat(str(updated_at))
-    except Exception:
-        return datetime.now(tz=UTC)
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=UTC)
-    return dt
-
-
-class OceanBaseBackend(BackendProtocol):
+class OceanBaseBackend(SyncCapableMixin, BackendProtocol):
     """BackendProtocol implementation backed by OceanBase."""
 
     def __init__(
@@ -283,6 +186,7 @@ class OceanBaseBackend(BackendProtocol):
         self._configure_vector_index_settings()
         self._create_table()
         self._validate_dims()
+        self.ensure_sync_table()
 
     def _create_client(self) -> None:
         self._obvector = ObVecClient(
@@ -342,6 +246,10 @@ class OceanBaseBackend(BackendProtocol):
             Column("abstract_embedding", VECTOR(self._vector_dims)),
             Column("fulltext_content", LONGTEXT),
             Column("payload_json", JSON),
+            Column("scope", String(512)),
+            Column("stage", String(64)),
+            Column("searchable", TINYINT(1)),
+            Column("hash", String(64)),
             Column("created_at", String(64)),
             Column("updated_at", String(64)),
         ]
@@ -439,6 +347,10 @@ class OceanBaseBackend(BackendProtocol):
             "summary": summary,
             "fulltext_content": fulltext_content,
             "payload_json": _json_safe(payload_slim),
+            "scope": str(payload.get("scope") or ""),
+            "stage": str(payload.get("stage") or ""),
+            "searchable": 1 if payload.get("searchable", True) else 0,
+            "hash": str(payload.get("hash") or ""),
             "created_at": _serialize_dt(payload.get("created_at")) or now,
             "updated_at": now,
         }
@@ -474,6 +386,10 @@ class OceanBaseBackend(BackendProtocol):
                 table.c["abstract"],
                 table.c["summary"],
                 table.c["abstract_embedding"],
+                table.c["scope"],
+                table.c["stage"],
+                table.c["searchable"],
+                table.c["hash"],
             )
             .where(table.c["ref"] == path)
             .limit(1)
@@ -482,9 +398,10 @@ class OceanBaseBackend(BackendProtocol):
             row = conn.execute(stmt).fetchone()
         if row is None:
             raise NotFoundError(path)
-        payload_json, content, abstract, summary, abstract_embedding = row
+        payload_json, content, abstract, summary, abstract_embedding, scope, stage, searchable, hash_val = row
         payload_dict = _merge_hoisted(
-            payload_json, content, abstract, summary, abstract_embedding
+            payload_json, content, abstract, summary, abstract_embedding,
+            scope=scope, stage=stage, searchable=searchable, hash_val=hash_val,
         )
         return FileData(
             content=json.dumps(payload_dict, ensure_ascii=False).encode("utf-8"),
@@ -506,14 +423,19 @@ class OceanBaseBackend(BackendProtocol):
             table.c["abstract"],
             table.c["summary"],
             table.c["abstract_embedding"],
+            table.c["scope"],
+            table.c["stage"],
+            table.c["searchable"],
+            table.c["hash"],
         ).where(table.c["ref"].in_(paths))
         with self._obvector.engine.connect() as conn:
             rows = conn.execute(stmt).fetchall()
         out: dict[str, FileData] = {}
         for row in rows:
-            ref, payload_json, content, abstract, summary, abstract_embedding = row
+            ref, payload_json, content, abstract, summary, abstract_embedding, scope, stage, searchable, hash_val = row
             payload_dict = _merge_hoisted(
-                payload_json, content, abstract, summary, abstract_embedding
+                payload_json, content, abstract, summary, abstract_embedding,
+                scope=scope, stage=stage, searchable=searchable, hash_val=hash_val,
             )
             out[ref] = FileData(
                 content=json.dumps(payload_dict, ensure_ascii=False).encode("utf-8"),
@@ -566,6 +488,9 @@ class OceanBaseBackend(BackendProtocol):
         assert self._obvector is not None and self._table is not None
         table = self._table
         where_clause = [table.c["namespace"].like(f"{prefix}%")] if prefix else []
+        where_clause.append(
+            or_(table.c["searchable"] == 1, table.c["searchable"].is_(None))
+        )
 
         try:
             results = self._obvector.ann_search(
@@ -583,6 +508,10 @@ class OceanBaseBackend(BackendProtocol):
                     "abstract",
                     "summary",
                     "abstract_embedding",
+                    "scope",
+                    "stage",
+                    "searchable",
+                    "hash",
                 ],
                 where_clause=where_clause,
             )
@@ -614,6 +543,10 @@ class OceanBaseBackend(BackendProtocol):
                     "_abstract": mapping.get("abstract") or "",
                     "_summary": mapping.get("summary") or "",
                     "_abstract_embedding": mapping.get("abstract_embedding"),
+                    "_scope": mapping.get("scope"),
+                    "_stage": mapping.get("stage"),
+                    "_searchable": mapping.get("searchable"),
+                    "_hash": mapping.get("hash"),
                 }
             )
         return out
@@ -627,6 +560,7 @@ class OceanBaseBackend(BackendProtocol):
 
         table = self._table
         ns_cond = table.c["namespace"].like(f"{prefix}%") if prefix else None
+        searchable_cond = or_(table.c["searchable"] == 1, table.c["searchable"].is_(None))
 
         fts_where_expr = text(
             "MATCH(fulltext_content) AGAINST(:q_where IN NATURAL LANGUAGE MODE)"
@@ -643,8 +577,12 @@ class OceanBaseBackend(BackendProtocol):
             table.c["abstract"],
             table.c["summary"],
             table.c["abstract_embedding"],
+            table.c["scope"],
+            table.c["stage"],
+            table.c["searchable"],
+            table.c["hash"],
             fts_score_expr,
-        ).where(fts_where_expr)
+        ).where(fts_where_expr).where(searchable_cond)
         if ns_cond is not None:
             stmt = stmt.where(ns_cond)
         stmt = stmt.order_by(text("fts_score DESC")).limit(k)
@@ -663,11 +601,15 @@ class OceanBaseBackend(BackendProtocol):
                 table.c["abstract"],
                 table.c["summary"],
                 table.c["abstract_embedding"],
+                table.c["scope"],
+                table.c["stage"],
+                table.c["searchable"],
+                table.c["hash"],
             ).where(
                 table.c["fulltext_content"].like(
                     f"%{_escape_like(query)}%", escape="\\"
                 )
-            )
+            ).where(searchable_cond)
             if ns_cond is not None:
                 like_stmt = like_stmt.where(ns_cond)
             like_stmt = like_stmt.limit(k)
@@ -692,6 +634,10 @@ class OceanBaseBackend(BackendProtocol):
                 "_abstract": row.get("abstract") or "",
                 "_summary": row.get("summary") or "",
                 "_abstract_embedding": row.get("abstract_embedding"),
+                "_scope": row.get("scope"),
+                "_stage": row.get("stage"),
+                "_searchable": row.get("searchable"),
+                "_hash": row.get("hash"),
             }
             for row in rows
         ]
@@ -802,6 +748,10 @@ class OceanBaseBackend(BackendProtocol):
                 doc.get("_abstract"),
                 doc.get("_summary"),
                 doc.get("_abstract_embedding"),
+                scope=doc.get("_scope"),
+                stage=doc.get("_stage"),
+                searchable=doc.get("_searchable"),
+                hash_val=doc.get("_hash"),
             )
             snippet = json.dumps(payload_dict, ensure_ascii=False)
             hits.append(SearchHit(path=doc["ref"], snippet=snippet, score=score))
@@ -924,23 +874,13 @@ class OceanBaseBackend(BackendProtocol):
             raise NotFoundError(path)
 
     def find_by_hash(self, path_pattern: str | None, hash_value: str) -> str | None:
-        """Return the ref of an item whose ``payload_json.hash`` equals *hash_value*.
-
-        Reads from ``payload_json`` via ``JSON_EXTRACT`` because ``hash`` is not
-        hoisted to a dedicated column. For scopes with a small candidate set
-        this is fast even without a dedicated index; for very large scopes a
-        functional index on ``JSON_EXTRACT(payload_json, '$.hash')`` can be
-        added externally.
-        """
+        """Return the ref of an item whose ``hash`` column equals *hash_value*."""
         if not hash_value:
             return None
         assert self._obvector is not None and self._table is not None
         prefix = _prefix_from_pattern(path_pattern)
         table = self._table
-        hash_expr = text(
-            "JSON_UNQUOTE(JSON_EXTRACT(payload_json, '$.hash')) = :h"
-        ).bindparams(bindparam("h", hash_value))
-        stmt = select(table.c["ref"]).where(hash_expr)
+        stmt = select(table.c["ref"]).where(table.c["hash"] == hash_value)
         if prefix:
             stmt = stmt.where(table.c["namespace"].like(f"{prefix}%"))
         stmt = stmt.limit(1)
@@ -953,6 +893,168 @@ class OceanBaseBackend(BackendProtocol):
         if row is None:
             return None
         return str(row[0])
+
+    # ------------------------------------------------------------------
+    # SyncCapableMixin implementation
+    # ------------------------------------------------------------------
+
+    def ensure_sync_table(self) -> None:
+        """Create the three sync helper tables if they do not yet exist."""
+        assert self._obvector is not None
+        ddl_stmts = [
+            (
+                "contextseek_sync_hashes",
+                "CREATE TABLE IF NOT EXISTS contextseek_sync_hashes "
+                "(scope VARCHAR(512) NOT NULL, hash CHAR(64) NOT NULL, "
+                "PRIMARY KEY (scope, hash))",
+            ),
+            (
+                "contextseek_sync_files",
+                "CREATE TABLE IF NOT EXISTS contextseek_sync_files "
+                "(scope VARCHAR(512) NOT NULL, path_hash CHAR(64) NOT NULL, "
+                "path VARCHAR(1024) NOT NULL, mtime DOUBLE NOT NULL, "
+                "content_hash CHAR(64) NOT NULL, PRIMARY KEY (scope, path_hash))",
+            ),
+            (
+                "contextseek_meta",
+                "CREATE TABLE IF NOT EXISTS contextseek_meta "
+                "(k VARCHAR(128) NOT NULL, v VARCHAR(512) NOT NULL, PRIMARY KEY (k))",
+            ),
+        ]
+        try:
+            with self._obvector.engine.connect() as conn:
+                with conn.begin():
+                    for _tbl, ddl in ddl_stmts:
+                        conn.execute(text(ddl))
+        except Exception as exc:
+            logger.warning(f"ensure_sync_table failed: {exc}")
+
+    def meta_get(self, key: str) -> str | None:
+        assert self._obvector is not None
+        try:
+            with self._obvector.engine.connect() as conn:
+                row = conn.execute(
+                    text("SELECT v FROM contextseek_meta WHERE k = :k").bindparams(k=key)
+                ).fetchone()
+            return str(row[0]) if row else None
+        except Exception as exc:
+            logger.warning(f"meta_get failed: {exc}")
+            return None
+
+    def meta_set(self, key: str, value: str) -> None:
+        assert self._obvector is not None
+        try:
+            with self._obvector.engine.connect() as conn:
+                with conn.begin():
+                    conn.execute(
+                        text(
+                            "REPLACE INTO contextseek_meta (k, v) VALUES (:k, :v)"
+                        ).bindparams(k=key, v=value)
+                    )
+        except Exception as exc:
+            logger.warning(f"meta_set failed: {exc}")
+
+    def sync_hashes_for_scope(self, scope: str) -> set[str]:
+        assert self._obvector is not None
+        try:
+            with self._obvector.engine.connect() as conn:
+                rows = conn.execute(
+                    text(
+                        "SELECT hash FROM contextseek_sync_hashes WHERE scope = :s"
+                    ).bindparams(s=scope)
+                ).fetchall()
+            return {str(r[0]) for r in rows}
+        except Exception as exc:
+            logger.warning(f"sync_hashes_for_scope failed: {exc}")
+            return set()
+
+    def sync_hash_add(self, scope: str, hash_val: str) -> None:
+        assert self._obvector is not None
+        try:
+            with self._obvector.engine.connect() as conn:
+                with conn.begin():
+                    conn.execute(
+                        text(
+                            "REPLACE INTO contextseek_sync_hashes (scope, hash) "
+                            "VALUES (:s, :h)"
+                        ).bindparams(s=scope, h=hash_val)
+                    )
+        except Exception as exc:
+            logger.warning(f"sync_hash_add failed: {exc}")
+
+    def sync_hashes_add_batch(self, scope: str, hashes: set[str]) -> None:
+        if not hashes:
+            return
+        assert self._obvector is not None
+        try:
+            with self._obvector.engine.connect() as conn:
+                with conn.begin():
+                    conn.execute(
+                        text(
+                            "INSERT IGNORE INTO contextseek_sync_hashes (scope, hash) "
+                            "VALUES (:s, :h)"
+                        ),
+                        [{"s": scope, "h": h} for h in hashes],
+                    )
+        except Exception as exc:
+            logger.warning(f"sync_hashes_add_batch failed: {exc}")
+
+    def sync_files_for_scope(self, scope: str) -> dict[str, tuple[float, str]]:
+        assert self._obvector is not None
+        try:
+            with self._obvector.engine.connect() as conn:
+                rows = conn.execute(
+                    text(
+                        "SELECT path, mtime, content_hash FROM contextseek_sync_files "
+                        "WHERE scope = :s"
+                    ).bindparams(s=scope)
+                ).fetchall()
+            return {str(r[0]): (float(r[1]), str(r[2])) for r in rows}
+        except Exception as exc:
+            logger.warning(f"sync_files_for_scope failed: {exc}")
+            return {}
+
+    def sync_file_record(
+        self, scope: str, path: str, mtime: float, content_hash: str
+    ) -> None:
+        assert self._obvector is not None
+        import hashlib
+
+        path_hash = hashlib.sha256(path.encode()).hexdigest()
+        try:
+            with self._obvector.engine.connect() as conn:
+                with conn.begin():
+                    conn.execute(
+                        text(
+                            "REPLACE INTO contextseek_sync_files "
+                            "(scope, path_hash, path, mtime, content_hash) "
+                            "VALUES (:s, :ph, :p, :m, :ch)"
+                        ).bindparams(
+                            s=scope, ph=path_hash, p=path, m=mtime, ch=content_hash
+                        )
+                    )
+        except Exception as exc:
+            logger.warning(f"sync_file_record failed: {exc}")
+
+    def visible_count_for_scope(self, scope: str) -> int:
+        assert self._obvector is not None and self._table is not None
+        try:
+            with self._obvector.engine.connect() as conn:
+                row = conn.execute(
+                    select(func.count())
+                    .select_from(self._table)
+                    .where(
+                        self._table.c["scope"] == scope,
+                        or_(
+                            self._table.c["searchable"] == 1,
+                            self._table.c["searchable"].is_(None),
+                        ),
+                    )
+                ).fetchone()
+            return int(row[0]) if row else 0
+        except Exception as exc:
+            logger.warning(f"visible_count_for_scope failed: {exc}")
+            return 0
 
     def close(self) -> None:
         """Dispose the underlying SQLAlchemy engine connection pool.

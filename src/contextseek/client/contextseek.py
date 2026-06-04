@@ -129,17 +129,21 @@ def _auto_build_summarizer() -> Any | None:
     return build_summarizer(SummarizerSettings())
 
 
-def _resolve_seekdb_backend(adapter: Any) -> Any | None:
-    """Return the SeekDBBackend behind *adapter*, or ``None``."""
+def _resolve_sync_backend(adapter: Any) -> Any | None:
+    """Return the sync-capable backend behind *adapter*, or ``None``."""
     try:
-        from contextseek.storage.seekdb_backend import SeekDBBackend
+        from contextseek.storage.protocol import SyncCapableMixin
 
         router = adapter._vfs._router
         _, route = router.resolve("contextseek://")
         backend = route.get("backend") if isinstance(route, dict) else None
-        return backend if isinstance(backend, SeekDBBackend) else None
+        return backend if isinstance(backend, SyncCapableMixin) else None
     except Exception:
         return None
+
+
+# Keep old name as alias so any callers not yet updated still work.
+_resolve_seekdb_backend = _resolve_sync_backend
 
 
 def _warn_on_embedding_dims_change(

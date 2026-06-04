@@ -484,19 +484,23 @@ def _parse_claude_json(p: pathlib.Path) -> list[tuple[str, str]]:
 # ---------------------------------------------------------------------------
 
 
-def _resolve_seekdb_backend(ctx: "ContextSeek") -> "Any | None":
-    """Return the SeekDBBackend if the active adapter uses one, else None."""
+def _resolve_sync_backend(ctx: "ContextSeek") -> "Any | None":
+    """Return the sync-capable backend if the active adapter uses one, else None."""
     try:
-        from contextseek.storage.seekdb_backend import SeekDBBackend
+        from contextseek.storage.protocol import SyncCapableMixin
 
         router = ctx.adapter._vfs._router
         _, route = router.resolve("contextseek://")
         backend = route.get("backend") if isinstance(route, dict) else None
-        if isinstance(backend, SeekDBBackend):
+        if isinstance(backend, SyncCapableMixin):
             return backend
     except Exception:
         pass
     return None
+
+
+# Keep old name as alias so any callers not yet updated still work.
+_resolve_seekdb_backend = _resolve_sync_backend
 
 
 def sync_path(
@@ -526,15 +530,15 @@ def sync_path(
     fmt = detect_format(p)
     report = SyncReport(format_detected=fmt)
 
-    seekdb_backend = _resolve_seekdb_backend(ctx)
-    if seekdb_backend is not None:
+    sync_backend = _resolve_seekdb_backend(ctx)
+    if sync_backend is not None:
         if on_progress is not None:
             on_progress(0, 0, 0)
-        existing_hashes: set[str] = seekdb_backend.sync_hashes_for_scope(scope)
-        existing_file_records = seekdb_backend.sync_files_for_scope(scope)
+        existing_hashes: set[str] = sync_backend.sync_hashes_for_scope(scope)
+        existing_file_records = sync_backend.sync_files_for_scope(scope)
         if (
             not dry_run
-            and seekdb_backend.visible_count_for_scope(scope) == 0
+            and sync_backend.visible_count_for_scope(scope) == 0
             and (existing_hashes or existing_file_records)
         ):
             # The collection has no rows visible under the current metadata
@@ -616,8 +620,8 @@ def sync_path(
                     source_type="document",
                     check_conflicts=False,
                 )
-                if seekdb_backend is not None:
-                    seekdb_backend.sync_hash_add(scope, h)
+                if sync_backend is not None:
+                    sync_backend.sync_hash_add(scope, h)
                 existing_hashes.add(h)
                 report.added += 1
             except ValueError:
@@ -629,7 +633,7 @@ def sync_path(
     if gate is not None and not dry_run:
         for file_path, (mtime, file_hash) in gate.updates.items():
             try:
-                seekdb_backend.sync_file_record(scope, file_path, mtime, file_hash)
+                sync_backend.sync_file_record(scope, file_path, mtime, file_hash)
             except Exception:
                 pass
 
